@@ -209,3 +209,16 @@ export function getReadableTextColor(hex: string): string {
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
   return luminance > 0.5 ? '#000000' : '#ffffff';
 }
+
+/**
+ * Formatea una fecha con hora en formato chileno (24h, mes abreviado)
+ * @param date - Fecha como string ISO o Date
+ * @returns Fecha formateada (ej: "02 sept. 2026, 16:30") o '—' si es null/undefined
+ */
+export function formatDateTime(date: string | Date | null | undefined): string {
+  if (!date) return '—';
+  return new Date(date).toLocaleString('es-CL', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+}

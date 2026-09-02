@@ -12,7 +12,7 @@ export default function DashboardLayout() {
   const { logoUrl } = useLogo();
 
   return (
-    <div className="flex overflow-x-hidden bg-background min-h-screen">
+    <div className="flex overflow-x-clip bg-background min-h-screen">
       <Sidebar 
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)}

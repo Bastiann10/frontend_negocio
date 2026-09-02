@@ -22,6 +22,7 @@ export const ESTADOS_ASIGNACION_TLD: EstadoAsignacionTLD[] = [
   { value: 5, label: 'Recepcionado devolución', color: '#06b6d4' },
   { value: 6, label: 'En lectura dosimetría', color: '#fde047' },
   { value: 7, label: 'Finalizado', color: '#84cc16' },
+  { value: 8, label: 'Fin del trimestre', color: '#dc2626' },
 ];
 
 export const getEstadoAsignacionTLD = (estado: number): EstadoAsignacionTLD => {

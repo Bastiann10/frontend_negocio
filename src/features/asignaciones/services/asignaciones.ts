@@ -51,18 +51,20 @@ export interface AreaPe {
 
 export interface Asignacion {
   id: number;
-  id_tarjeta_tld: number;
+  id_tarjeta_tld: number | null;
   id_area_pe: number;
   creado_por: number;
   id_trimestre: number;
-  fecha_recepcion: string;
+  fecha_recepcion: string | null;
   fecha_devolucion: string | null;
   fecha_envio: string | null;
   estado: number;
   createdAt: string;
   updatedAt: string;
   fecha_recepcion_devolucion: string | null;
-  tarjeta_tld: TarjetaTld;
+  fecha_vinculacion_tld: string | null;
+  fecha_desvinculacion_tld: string | null;
+  tarjeta_tld: TarjetaTld | null;
   trimestre: Trimestre;
   area_pe: AreaPe;
   es_actual?: boolean;

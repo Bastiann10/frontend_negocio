@@ -5,8 +5,8 @@ export interface Rol {
 }
 
 export const roles: Rol[] = [
-  { id: 1, nombre: 'OPR', descripcion: 'Oficial de Protección Radiológica' },
-  { id: 2, nombre: 'EPR', descripcion: 'Encargado de Personal Expuesto' },
+  { id: 0, nombre: 'Estandar', descripcion: 'Estándar' },
+  { id: 1, nombre: 'Administrador', descripcion: 'Administrador' },
 ];
 
 export function getRolById(id: number): Rol | null {

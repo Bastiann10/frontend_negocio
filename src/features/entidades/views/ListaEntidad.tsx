@@ -3,12 +3,14 @@ import {
   Building2, Layers, Users, ChevronRight, ChevronDown,
   Inbox, CreditCard, Calendar, Send, ArrowDownToLine, ArrowUpFromLine,
   CircleDot, Search, MoreVertical, Edit, Plus, Check, Clock,
-  RefreshCw, AlertTriangle,
+  RefreshCw, AlertTriangle, Link2, Unlink, PackageCheck,
 } from 'lucide-react';
 import { getEntidades, type EntidadResumen } from '../services/entidades';
 import { getAreas, getAreaPe, type AreaResumen, type AreaPe } from '../../areas/services/areas';
 import { getAsignacionesByAreaPe, type Asignacion } from '../../asignaciones/services/asignaciones';
-import { formatChileanRut } from '../../../core/utils/format';
+import { formatChileanRut, formatDateTime } from '../../../core/utils/format';
+import { getRolById } from '../../../core/config/rol';
+import { getEstadoAsignacionTLD } from '../../../core/config/estados';
 import Loading from '../../../core/components/Loading';
 import Pagination from '../../../core/components/Pagination';
 import SmartImage from '../../../core/components/SmartImage';
@@ -132,7 +134,7 @@ export default function ListaEntidadPage() {
   const selectedArea = areas.find((a) => a.id === selectedAreaId);
 
   return (
-    <div className="bg-background min-h-screen p-4 lg:p-6">
+    <div className="bg-background">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-foreground">Entidades y Áreas</h1>
         <p className="text-sm text-foreground-secondary">
@@ -291,7 +293,7 @@ function EntidadDropdown({
           <div className="relative" ref={ref}>
             <button
               onClick={() => setOpen((o) => !o)}
-              className="w-full text-left rounded-xl border border-border bg-background p-3 cursor-pointer transition-all duration-150 hover:bg-foreground/3 flex items-center gap-3"
+              className="w-full text-left rounded-xl border border-border bg-background-secondary p-3 cursor-pointer transition-all duration-150 hover:bg-foreground/3 flex items-center gap-3"
               style={
                 selectedEntidad
                   ? { borderLeft: `4px solid ${selectedEntidad.color_primario}` }
@@ -571,9 +573,8 @@ function AreaAccordionItem({
   return (
     <button
       onClick={onSelect}
-      style={accent ? { borderLeftColor: accent } : undefined}
-      className={`text-left w-full rounded-xl border border-l-4 p-3 cursor-pointer bg-background transition-all duration-150 ease-out ${
-        isSelected ? 'ring-1 ring-border bg-foreground/3' : 'hover:bg-foreground/3'
+      className={`text-left w-full rounded-xl border border-border bg-background-secondary p-3 cursor-pointer transition-all duration-150 ease-out ${
+        isSelected ? 'border-foreground bg-foreground/3' : 'hover:bg-foreground/3'
       }`}
     >
       <div className="flex items-center gap-3">
@@ -799,15 +800,11 @@ function PersonalMetricCards({
   }
 
   const activo = areaPe.estado === 1;
-  const expiracion = areaPe.fecha_expiracion
-    ? new Date(areaPe.fecha_expiracion).toLocaleDateString('es-CL', {
-        day: '2-digit', month: 'short', year: 'numeric',
-      })
-    : '—';
+  const expiracion = formatDateTime(areaPe.fecha_expiracion);
 
   const cards = [
     { icon: <Users size={14} />, label: 'Cargo', value: areaPe.cargo },
-    { icon: <CreditCard size={14} />, label: 'Rol', value: String(areaPe.rol) },
+    { icon: <CreditCard size={14} />, label: 'Rol', value: getRolById(areaPe.rol)?.descripcion ?? String(areaPe.rol) },
     {
       icon: <CircleDot size={14} />,
       label: 'Estado',
@@ -835,7 +832,7 @@ function PersonalMetricCards({
         {cards.map((c) => (
           <div
             key={c.label}
-            className="rounded-xl border border-border bg-background p-4 flex flex-col gap-2"
+            className="rounded-xl border border-border bg-background-secondary p-4 flex flex-col gap-2"
           >
             <div className="flex items-center gap-1.5 text-foreground-secondary">
               {c.icon}
@@ -868,10 +865,10 @@ function PersonalMetricCards({
       {/* Footer con metadatos secundarios */}
       <div className="flex items-center gap-4 text-xs text-foreground-secondary px-1">
         <span className="flex items-center gap-1" title="Fecha de creación">
-          <Clock size={12} /> Creado: {new Date(areaPe.createdAt).toLocaleDateString('es-CL')}
+          <Clock size={12} /> Creado: {formatDateTime(areaPe.createdAt)}
         </span>
         <span className="flex items-center gap-1" title="Última actualización">
-          <RefreshCw size={12} /> Actualizado: {new Date(areaPe.updatedAt).toLocaleDateString('es-CL')}
+          <RefreshCw size={12} /> Actualizado: {formatDateTime(areaPe.updatedAt)}
         </span>
       </div>
     </div>
@@ -881,13 +878,6 @@ function PersonalMetricCards({
 /* =================================================================== */
 /* ===================  ASIGNACIONES TLD  =========================== */
 /* =================================================================== */
-
-const ESTADO_ASIGNACION_LABELS: Record<number, string> = {
-  0: 'Pendiente',
-  1: 'Enviada',
-  2: 'Recibida',
-  3: 'Devuelta',
-};
 
 function AsignacionesSection({
   asignaciones,
@@ -925,7 +915,7 @@ function AsignacionesSection({
       {!loading && !error && asignaciones.length === 0 && (
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <Inbox size={24} className="text-foreground-secondary mb-2" />
-          <p className="text-sm text-foreground-secondary">Sin asignaciones registradas</p>
+          <p className="text-sm text-foreground-secondary">No han iniciado tus trimestres</p>
         </div>
       )}
 
@@ -981,34 +971,29 @@ function AsignacionesStepper({
   selectedId: number | null;
   onSelect: (id: number) => void;
 }) {
-  // Determinar el estado de cada paso relativo al actual
-  const actualIndex = asignaciones.findIndex((a) => a.es_actual);
   const sorted = [...asignaciones].sort(
     (a, b) => (a.trimestre?.inicio ?? '').localeCompare(b.trimestre?.inicio ?? ''),
   );
 
   return (
-    <div className="overflow-x-auto -mx-2 px-2 py-2">
-      <div className="flex items-start min-w-full">
+    <div className="overflow-x-auto overflow-y-visible -mx-2 px-2 py-4">
+      <div className="flex items-start min-w-full justify-center">
         {sorted.map((asignacion, idx) => {
           const trimestre = asignacion.trimestre;
           const isSelected = asignacion.id === selectedId;
           const esActual = asignacion.es_actual === true;
           const color = trimestre?.color ?? 'var(--color-foreground-secondary)';
 
-          // Estado del paso: completado / actual / pendiente
+          // Determinar estado del paso según el campo 'estado' de la asignación
+          // 0=Gestionando, 1=En envío, 2=Recepcionado, 3=En uso, 4=Devuelta,
+          // 5=Recepcionado devolución, 6=En lectura dosimetría, 7=Finalizado, 8=Fin del trimestre
           let stepStatus: 'completado' | 'actual' | 'pendiente' = 'pendiente';
-          if (esActual) {
+          if (asignacion.estado >= 7) {
+            stepStatus = 'completado';
+          } else if (asignacion.estado > 0 || esActual) {
             stepStatus = 'actual';
-          } else if (actualIndex >= 0) {
-            const actualAsig = asignaciones.find((a) => a.es_actual);
-            if (actualAsig && trimestre && actualAsig.trimestre) {
-              if (trimestre.inicio < actualAsig.trimestre.inicio) {
-                stepStatus = 'completado';
-              } else if (trimestre.inicio > actualAsig.trimestre.inicio) {
-                stepStatus = 'pendiente';
-              }
-            }
+          } else {
+            stepStatus = 'pendiente';
           }
 
           const isLast = idx === sorted.length - 1;
@@ -1021,7 +1006,7 @@ function AsignacionesStepper({
                 className="flex flex-col items-center gap-1.5 px-2 cursor-pointer group"
                 title={
                   trimestre
-                    ? `${trimestre.nombre_trimestre} ${trimestre.anio} · ${stepStatus}${esActual ? ' (Actual)' : ''}`
+                    ? `${trimestre.nombre_trimestre} ${trimestre.anio} · ${getEstadoAsignacionTLD(asignacion.estado).label}`
                     : `Asignación #${asignacion.id}`
                 }
               >
@@ -1052,39 +1037,25 @@ function AsignacionesStepper({
                     ? `${trimestre.nombre_trimestre.replace(' Trimestre', 'T')} ${trimestre.anio}`
                     : `#${asignacion.id}`}
                 </span>
-                <span
-                  className="text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap"
-                  style={{
-                    backgroundColor:
-                      stepStatus === 'completado'
-                        ? `${color}14`
-                        : stepStatus === 'actual'
-                          ? `${color}1a`
-                          : 'var(--color-foreground-faint, rgba(0,0,0,0.04))',
-                    color:
-                      stepStatus === 'pendiente'
-                        ? 'var(--color-foreground-secondary)'
-                        : color,
-                  }}
-                >
-                  {stepStatus === 'completado'
-                    ? 'Completado'
-                    : stepStatus === 'actual'
-                      ? 'Actual'
-                      : 'Pendiente'}
+                <span className="flex items-center gap-1 text-xs font-medium whitespace-nowrap text-foreground-secondary">
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ backgroundColor: getEstadoAsignacionTLD(asignacion.estado).color }}
+                  />
+                  {getEstadoAsignacionTLD(asignacion.estado).label}
                 </span>
+                {esActual && (
+                  <span className="text-xs font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ color, backgroundColor: `${color}1a` }}>
+                    Actual
+                  </span>
+                )}
               </button>
 
               {/* Conector */}
               {!isLast && (
                 <div
-                  className="flex-1 h-px mt-2 mx-1 min-w-[1.5rem]"
-                  style={{
-                    backgroundColor:
-                      stepStatus === 'completado'
-                        ? color
-                        : 'var(--color-border)',
-                  }}
+                  className="flex-1 h-px mt-2 mx-2 min-w-[3rem]"
+                  style={{ backgroundColor: color }}
                 />
               )}
             </div>
@@ -1100,16 +1071,13 @@ function AsignacionesStepper({
 function AsignacionDetail({ asignacion }: { asignacion: Asignacion }) {
   const tarjeta = asignacion.tarjeta_tld;
   const trimestre = asignacion.trimestre;
-  const estadoLabel =
-    ESTADO_ASIGNACION_LABELS[asignacion.estado] ?? `Estado ${asignacion.estado}`;
+  const estadoInfo = getEstadoAsignacionTLD(asignacion.estado);
+  const estadoLabel = estadoInfo.label;
+  const estadoColor = estadoInfo.color;
   const color = trimestre?.color ?? 'var(--color-foreground-secondary)';
 
   const fmtDate = (d: string | null | undefined) =>
-    d
-      ? new Date(d).toLocaleDateString('es-CL', {
-          day: '2-digit', month: 'short', year: 'numeric',
-        })
-      : null;
+    d ? formatDateTime(d) : null;
 
   const fmtPeriodo = (inicio: string, termino: string) => {
     const i = fmtDate(inicio);
@@ -1117,7 +1085,7 @@ function AsignacionDetail({ asignacion }: { asignacion: Asignacion }) {
     return i && t ? `${i} – ${t}` : '—';
   };
 
-  // Matriz de estados: envío / recepción / devolución
+  // Matriz de fechas del ciclo TLD
   const estados = [
     {
       icon: <Send size={14} />,
@@ -1130,9 +1098,24 @@ function AsignacionDetail({ asignacion }: { asignacion: Asignacion }) {
       fecha: asignacion.fecha_recepcion,
     },
     {
+      icon: <Link2 size={14} />,
+      label: 'Vinculación TLD',
+      fecha: asignacion.fecha_vinculacion_tld,
+    },
+    {
+      icon: <Unlink size={14} />,
+      label: 'Desvinculación TLD',
+      fecha: asignacion.fecha_desvinculacion_tld,
+    },
+    {
       icon: <ArrowUpFromLine size={14} />,
       label: 'Devolución',
       fecha: asignacion.fecha_devolucion,
+    },
+    {
+      icon: <PackageCheck size={14} />,
+      label: 'Recepción devolución',
+      fecha: asignacion.fecha_recepcion_devolucion,
     },
   ];
 
@@ -1159,26 +1142,19 @@ function AsignacionDetail({ asignacion }: { asignacion: Asignacion }) {
             )}
           </div>
         </div>
-        <span
-          className="text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap"
-          style={{ backgroundColor: `${color}1a`, color }}
-        >
+        <span className="flex items-center gap-1.5 text-xs font-medium whitespace-nowrap text-foreground">
+          <span
+            className="w-2 h-2 rounded-full shrink-0"
+            style={{ backgroundColor: estadoColor }}
+          />
           {estadoLabel}
         </span>
       </div>
 
-      {/* 2 columnas: izquierda período / derecha matriz de estados */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-        {/* Columna izquierda: estado + período */}
+      {/* 3 columnas: período / ciclo parte 1 / ciclo parte 2 */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
+        {/* Columna 1: período */}
         <div className="flex flex-col gap-2">
-          <div>
-            <p className="text-xs text-foreground-secondary uppercase tracking-wide mb-0.5">
-              Asignación
-            </p>
-            <p className="text-sm font-medium text-foreground">
-              #{asignacion.id} · {estadoLabel}
-            </p>
-          </div>
           {trimestre && (
             <div>
               <p className="text-xs text-foreground-secondary uppercase tracking-wide mb-0.5">
@@ -1197,12 +1173,12 @@ function AsignacionDetail({ asignacion }: { asignacion: Asignacion }) {
           )}
         </div>
 
-        {/* Columna derecha: matriz de estados con iconos */}
+        {/* Columna 2: ciclo TLD - envío y recepción */}
         <div className="flex flex-col gap-2">
           <p className="text-xs text-foreground-secondary uppercase tracking-wide mb-0.5">
-            Estado de envíos
+            Envío y recepción
           </p>
-          {estados.map((e) => {
+          {estados.slice(0, 3).map((e) => {
             const done = !!e.fecha;
             return (
               <div
@@ -1222,7 +1198,39 @@ function AsignacionDetail({ asignacion }: { asignacion: Asignacion }) {
                     done ? 'text-foreground' : 'text-foreground-secondary italic'
                   }`}
                 >
-                  {done ? fmtDate(e.fecha) : 'No iniciado'}
+                  {done ? fmtDate(e.fecha) : 'Pendiente'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Columna 3: ciclo TLD - devolución y cierre */}
+        <div className="flex flex-col gap-2">
+          <p className="text-xs text-foreground-secondary uppercase tracking-wide mb-0.5">
+            Devolución y cierre
+          </p>
+          {estados.slice(3).map((e) => {
+            const done = !!e.fecha;
+            return (
+              <div
+                key={e.label}
+                className="flex items-center gap-2 text-sm rounded-lg px-2.5 py-1.5 border border-border"
+              >
+                <span
+                  className={`shrink-0 ${done ? 'text-success' : 'text-foreground-secondary'}`}
+                >
+                  {e.icon}
+                </span>
+                <span className="text-foreground-secondary font-medium min-w-[5rem]">
+                  {e.label}:
+                </span>
+                <span
+                  className={`ml-auto text-xs ${
+                    done ? 'text-foreground' : 'text-foreground-secondary italic'
+                  }`}
+                >
+                  {done ? fmtDate(e.fecha) : 'Pendiente'}
                 </span>
               </div>
             );
