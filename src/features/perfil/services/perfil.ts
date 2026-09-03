@@ -32,7 +32,8 @@ export interface Perfil {
 export interface PerfilResumen {
   entidades: number;
   areas: number;
-  asignaciones_activas: number;
+  trimestres_iniciados: number;
+  anio: number;
 }
 
 export interface PerfilResponse {
@@ -51,6 +52,34 @@ export const getPerfil = async (): Promise<PerfilResponse> => {
 
   if (!response.ok) {
     throw new Error(data.message || 'Error al obtener el perfil');
+  }
+
+  return data;
+};
+
+export interface UpdatePerfilPayload {
+  nombre?: string;
+  apellido?: string;
+  segundo_apellido?: string;
+  correo?: string;
+  telefono?: string;
+  foto_url?: string;
+  contrasena_actual?: string;
+  contrasena_nueva?: string;
+}
+
+export const updatePerfil = async (payload: UpdatePerfilPayload): Promise<{ message: string; personal_expuesto: Perfil }> => {
+  const response = await fetchWithAuth(`${API_BASE_URL}/portal/perfil`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Error al actualizar el perfil');
   }
 
   return data;

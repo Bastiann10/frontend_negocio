@@ -100,8 +100,13 @@ export const getAsignaciones = async (): Promise<AsignacionesResponse> => {
   return data;
 };
 
-export const getAsignacionesByAreaPe = async (idAreaPe: number): Promise<AsignacionesResponse> => {
-  const response = await fetchWithAuth(`${API_BASE_URL}/portal/asignaciones/${idAreaPe}`, {
+export const getAsignacionesByAreaPe = async (idAreaPe: number, anio?: number): Promise<AsignacionesResponse> => {
+  const params = new URLSearchParams();
+  if (anio) {
+    params.set('anio', String(anio));
+  }
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const response = await fetchWithAuth(`${API_BASE_URL}/portal/asignaciones/${idAreaPe}${query}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',

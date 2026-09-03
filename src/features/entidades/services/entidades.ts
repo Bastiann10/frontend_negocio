@@ -16,8 +16,13 @@ export interface EntidadesResponse {
   entidades: EntidadResumen[];
 }
 
-export const getEntidades = async (): Promise<EntidadesResponse> => {
-  const response = await fetchWithAuth(`${API_BASE_URL}/portal/entidades`, {
+export const getEntidades = async (search?: string): Promise<EntidadesResponse> => {
+  const params = new URLSearchParams();
+  if (search && search.trim()) {
+    params.set('busqueda', search.trim());
+  }
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const response = await fetchWithAuth(`${API_BASE_URL}/portal/entidades${query}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',

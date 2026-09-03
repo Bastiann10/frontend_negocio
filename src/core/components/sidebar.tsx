@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router';
-import { Home, Users, LogOut, Building, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, Bell, ClipboardList } from 'lucide-react';
+import { Home, LogOut, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useTheme } from '../providers/ThemeProvider';
 import { useLogo } from '../providers/LogoProvider';
 import { logout } from '../../features/auth/services/auth.ts';
@@ -14,11 +14,6 @@ interface SidebarProps {
 
 const menuItems = [
   { to: '/inicio', icon: Home, label: 'Inicio' },
-  { to: '/perfil', icon: Users, label: 'Perfil' },
-  { to: '/entidades', icon: Building, label: 'Entidades' },
-  { to: '/areas', icon: ClipboardList, label: 'Áreas' },
-  { to: '/asignaciones', icon: ClipboardList, label: 'Asignaciones' },
-  { to: '/alertas', icon: Bell, label: 'Alertas' },
 ];
 
 export default function Sidebar({ isOpen = false, onClose, isCollapsed = false, onToggleCollapse }: SidebarProps) {

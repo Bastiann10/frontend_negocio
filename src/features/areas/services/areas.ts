@@ -59,12 +59,15 @@ export interface AlertasAreaResponse {
   alertas: AlertaArea[];
 }
 
-export const getAreas = async (id_entidad: number, page = 1, limit = 10): Promise<AreasResponse> => {
+export const getAreas = async (id_entidad: number, page = 1, limit = 10, search?: string): Promise<AreasResponse> => {
   const params = new URLSearchParams({
     id_entidad: String(id_entidad),
     page: String(page),
     limit: String(limit),
   });
+  if (search && search.trim()) {
+    params.set('busqueda', search.trim());
+  }
   const response = await fetchWithAuth(`${API_BASE_URL}/portal/areas?${params.toString()}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
@@ -111,4 +114,20 @@ export const getAlertasArea = async (id: number): Promise<AlertasAreaResponse> =
   }
 
   return data;
+};
+
+export const getAniosByAreaPe = async (idAreaPe: number): Promise<number[]> => {
+  const response = await fetchWithAuth(`${API_BASE_URL}/portal/areas/anios-by-area-pe/${idAreaPe}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Error al obtener años del área');
+  }
+
+  return data.anios ?? data;
 };
