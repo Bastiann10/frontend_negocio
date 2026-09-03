@@ -7,7 +7,7 @@ export function useLoginForm() {
   return useForm<Login>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      correo: '',
+      rut: '',
       contrasena: '',
     },
     mode: 'onSubmit',

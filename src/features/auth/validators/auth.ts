@@ -1,11 +1,12 @@
 import { z } from 'zod';
+import { isValidChileanRut } from '../../../core/utils/format';
 
-// Esquema para login (solo correo y contraseña)
+// Esquema para login (RUT y contraseña)
 export const loginSchema = z.object({
-  correo: z
+  rut: z
     .string()
-    .min(1, 'El correo es requerido')
-    .email('Correo electrónico inválido'),
+    .min(1, 'El RUT es requerido')
+    .refine((val) => isValidChileanRut(val), 'RUT inválido'),
   contrasena: z
     .string()
     .min(6, 'La contraseña debe tener al menos 6 caracteres'),

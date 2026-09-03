@@ -5,6 +5,7 @@ import { useLoginForm } from '../hook/useAuthForm.ts';
 import { useLogo } from '../../../core/providers/LogoProvider.tsx';
 import { Eye, EyeOff } from 'lucide-react';
 import SmartImage from '../../../core/components/SmartImage.tsx';
+import { cleanChileanRut, formatRutOnChange } from '../../../core/utils/format.ts';
 
 export default function LoginPage() {
   const [error, setError] = useState('');
@@ -16,6 +17,7 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useLoginForm();
 
@@ -25,7 +27,7 @@ export default function LoginPage() {
 
     try {
       const response = await login({
-        correo: data.correo,
+        rut: cleanChileanRut(data.rut),
         contrasena: data.contrasena,
       });
 
@@ -63,15 +65,16 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit(handleLogin)} className="space-y-4">
             <div>
-              <label className="block font-medium text-foreground-secondary mb-2">Correo</label>
+              <label className="block font-medium text-foreground-secondary mb-2">RUT</label>
               <input
-                type="email"
-                {...register('correo')}
-                placeholder="correo@ejemplo.cl"
+                type="text"
+                {...register('rut')}
+                onChange={formatRutOnChange(setValue, 'rut')}
+                placeholder="12.345.678-9"
                 className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-focus-ring focus:border-transparent outline-none"
               />
-              {errors.correo && (
-                <p className="text-danger text-sm mt-1">{errors.correo.message as string}</p>
+              {errors.rut && (
+                <p className="text-danger text-sm mt-1">{errors.rut.message as string}</p>
               )}
             </div>
             <div>
