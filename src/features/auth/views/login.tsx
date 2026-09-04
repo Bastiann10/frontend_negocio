@@ -6,11 +6,13 @@ import { useLogo } from '../../../core/providers/LogoProvider.tsx';
 import { Eye, EyeOff } from 'lucide-react';
 import SmartImage from '../../../core/components/SmartImage.tsx';
 import { cleanChileanRut, formatRutOnChange } from '../../../core/utils/format.ts';
+import RecuperarClaveModal from '../components/RecuperarClaveModal.tsx';
 
 export default function LoginPage() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [recuperarOpen, setRecuperarOpen] = useState(false);
   const navigate = useNavigate();
   const { logoUrl } = useLogo();
 
@@ -49,7 +51,7 @@ export default function LoginPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background-secondary">
       <div className="w-full max-w-md p-6">
-        <div className="bg-background rounded-xl p-8">
+        <div className="bg-background rounded-xl p-8 border border-border">
           <div className="text-center mb-8">
             {logoUrl && (
               <SmartImage
@@ -112,9 +114,24 @@ export default function LoginPage() {
             >
               {isSubmitting ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </button>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setRecuperarOpen(true)}
+                className="text-sm text-foreground-secondary hover:text-foreground cursor-pointer transition-colors"
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
           </form>
         </div>
       </div>
+
+      <RecuperarClaveModal
+        isOpen={recuperarOpen}
+        onClose={() => setRecuperarOpen(false)}
+      />
     </div>
   );
 }

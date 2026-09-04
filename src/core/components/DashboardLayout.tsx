@@ -1,17 +1,16 @@
 import { useState, useEffect } from "react";
-import { Outlet } from "react-router";
-import { Menu } from "lucide-react";
-import Sidebar from "../components/sidebar.tsx";
+import { Outlet, useNavigate } from "react-router";
+import { LogOut } from "lucide-react";
 import { useLogo } from "../providers/LogoProvider";
 import { getPerfil } from "../../features/perfil/services/perfil.ts";
+import { logout } from "../../features/auth/services/auth.ts";
 import AuthErrorModal from "./AuthErrorModal";
 import SmartImage from "./SmartImage";
 
 export default function DashboardLayout() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const { logoUrl } = useLogo();
+  const navigate = useNavigate();
 
   const sessionData = localStorage.getItem('dosimetria_session');
   const userData = sessionData ? JSON.parse(sessionData) : null;
@@ -26,23 +25,28 @@ export default function DashboardLayout() {
       .catch(() => {});
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    } finally {
+      localStorage.removeItem('dosimetria_session');
+      navigate('/login');
+    }
+  };
+
   return (
     <div className="flex overflow-x-clip bg-background min-h-screen">
-      <Sidebar 
+      {/* <Sidebar 
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-      />
+      /> */}
 
-      <main className={`flex-1 min-w-0 transition-all duration-300 ml-0 ${isSidebarCollapsed ? 'min-[1201px]:ml-20' : 'min-[1201px]:ml-64'}`}>
-        <nav className="max-[1200px]:flex min-[1201px]:hidden p-3 sm:p-4 bg-sidebar dark:bg-background-secondary border-b border-border items-center gap-3 sm:gap-4 fixed top-0 left-0 right-0 z-40">
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 rounded-lg shrink-0 cursor-pointer transition-colors duration-100 ease-out text-background dark:text-foreground hover:bg-sidebar-hover"
-          >
-            <Menu size={22} />
-          </button>
+      <main className="flex-1 min-w-0 transition-all duration-300 ml-0">
+        <nav className="flex p-3 sm:p-4 bg-sidebar dark:bg-background-secondary border-b border-border items-center gap-3 sm:gap-4 fixed top-0 left-0 right-0 z-40">
           <SmartImage
             src={logoUrl || ''}
             alt="Logo"
@@ -71,9 +75,16 @@ export default function DashboardLayout() {
                 {fullName}
               </span>
             </div>
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg shrink-0 cursor-pointer transition-colors duration-100 ease-out text-background dark:text-foreground hover:bg-sidebar-hover"
+              title="Cerrar sesión"
+            >
+              <LogOut size={20} />
+            </button>
           </div>
         </nav>
-        <div className="max-[1200px]:pt-20 min-[1201px]:pt-6">
+        <div className="pt-20">
           <div className="p-8 max-w-[90rem] mx-auto">
             <Outlet />
           </div>

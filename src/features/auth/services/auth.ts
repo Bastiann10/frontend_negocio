@@ -80,3 +80,37 @@ export const logout = async (): Promise<LogoutResponse> => {
 
   return data;
 };
+
+export const recuperarClave = async (correo: string): Promise<{ message: string }> => {
+  const response = await fetch(`${API_BASE_URL}/portal/auth/recuperar-clave`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ correo }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Error al solicitar recuperación');
+  }
+
+  return data;
+};
+
+export const restablecerClave = async (correo: string, codigo: string, nueva_contrasena: string): Promise<{ message: string }> => {
+  const response = await fetch(`${API_BASE_URL}/portal/auth/restablecer-clave`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ correo, codigo, nueva_contrasena }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Error al restablecer clave');
+  }
+
+  return data;
+};

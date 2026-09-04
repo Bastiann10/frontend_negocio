@@ -642,7 +642,7 @@ function AsignacionDetail({ asignacion }: { asignacion: Asignacion }) {
           )}
           <div className="min-w-0">
             <p className="text-sm text-foreground truncate">
-              {tarjeta?.codigo ?? `Asignación #${asignacion.id}`}
+              {tarjeta?.codigo ?? 'Sin tarjeta asignada'}
             </p>
             {tarjeta?.cristal?.codigo && (
               <p className="text-xs text-foreground-secondary truncate">

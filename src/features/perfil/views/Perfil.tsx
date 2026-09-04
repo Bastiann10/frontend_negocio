@@ -333,11 +333,13 @@ export default function PerfilPage() {
             onSearch={setSearchAreas}
           />
 
-          <PersonalMetricCards
-            areaPe={areaPe}
-            loadingPe={loadingPe}
-            errorPe={errorPe}
-          />
+          {selectedArea && (
+            <PersonalMetricCards
+              areaPe={areaPe}
+              loadingPe={loadingPe}
+              errorPe={errorPe}
+            />
+          )}
         </div>
       </div>
 
