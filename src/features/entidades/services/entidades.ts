@@ -10,7 +10,10 @@ export interface EntidadDetalle {
   color_secundario?: string;
 }
 
-export interface EntidadResumen extends EntidadDetalle {}
+export interface EntidadResumen extends EntidadDetalle {
+  acceso_id: number;
+  correo: string;
+}
 
 export interface EntidadesResponse {
   entidades: EntidadResumen[];
@@ -34,5 +37,12 @@ export const getEntidades = async (search?: string): Promise<EntidadesResponse> 
     throw new Error(data.message || 'Error al obtener entidades');
   }
 
-  return data;
+  // Transformar respuesta anidada { acceso_id, correo, entidad } a plano
+  const entidades = (data.entidades ?? []).map((item: any) => ({
+    ...item.entidad,
+    acceso_id: item.acceso_id,
+    correo: item.correo,
+  }));
+
+  return { entidades };
 };

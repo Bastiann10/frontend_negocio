@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Building2, Layers, Users, ChevronRight, Briefcase,
+  Briefcase,
   Inbox, CreditCard, Calendar, Send, ArrowDownToLine, ArrowUpFromLine,
-  CircleDot, MoreVertical, Edit, Plus, Check, Clock,
-  RefreshCw, AlertTriangle, Link2, Unlink, PackageCheck,
+  CircleDot, Check,
+  AlertTriangle, Link2, Unlink, PackageCheck,
 } from 'lucide-react';
 import { getAniosByAreaPe, type AreaResumen, type AreaPe } from '../../areas/services/areas';
 import { type Asignacion } from '../../asignaciones/services/asignaciones';
@@ -12,6 +12,7 @@ import { getRolById } from '../../../core/config/rol';
 import { getEstadoAsignacionTLD } from '../../../core/config/estados';
 import Loading from '../../../core/components/Loading';
 import { type EntidadResumen } from '../services/entidades';
+import { dosisComparativaPorTrimestre, type DosisComparativa } from '../../asignaciones/data/dosisComparativa';
 
 /* =================================================================== */
 /* =======================  AREA DETALLE  ============================ */
@@ -35,8 +36,7 @@ export interface AreaDetalleProps {
 }
 
 export default function AreaDetalle(props: AreaDetalleProps) {
-  const { selectedEntidad, selectedArea, loadingAreas, loadingEntidades, areaPe, loadingPe, errorPe } = props;
-  const accent = selectedEntidad?.color_primario;
+  const { selectedArea, loadingAreas, loadingEntidades, areaPe } = props;
 
   if (loadingAreas) {
     return <Loading text="Cargando detalle" />;
@@ -57,20 +57,7 @@ export default function AreaDetalle(props: AreaDetalleProps) {
   }
 
   return (
-    <section className="flex flex-col gap-4">
-      <AreaHeader
-        selectedEntidad={selectedEntidad}
-        selectedArea={selectedArea}
-        areaPe={areaPe}
-        accent={accent}
-      />
-
-      <PersonalMetricCards
-        areaPe={areaPe}
-        loadingPe={loadingPe}
-        errorPe={errorPe}
-      />
-
+    <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] gap-4 items-start">
       <AnioSelector
         areaPe={areaPe}
         asignaciones={props.asignaciones}
@@ -159,6 +146,10 @@ function AnioSelector({
         </select>
       </div>
 
+      <div className="flex items-center gap-2 text-sm text-foreground-secondary">
+        <span><strong className="text-foreground">{dosisComparativaPorTrimestre.reduce((acc, d) => acc + d.trimestreActual.valor, 0).toLocaleString('es-CL')} mSv</strong> / 20 mSv (umbral anual)</span>
+      </div>
+
       {loadingAsignaciones && <Loading text="Cargando asignaciones" />}
       {!loadingAsignaciones && errorAsignaciones && (
         <p className="text-danger text-sm text-center py-6">{errorAsignaciones}</p>
@@ -180,110 +171,9 @@ function AnioSelector({
   );
 }
 
-/* ---------- Header del área ---------- */
-
-function AreaHeader({
-  selectedEntidad,
-  selectedArea,
-  areaPe,
-  accent,
-}: {
-  selectedEntidad?: EntidadResumen;
-  selectedArea: AreaResumen;
-  areaPe: AreaPe | null;
-  accent?: string;
-}) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const activo = areaPe?.estado === 1;
-
-  return (
-    <div
-      className="rounded-2xl bg-background-secondary border border-border p-5"
-      style={accent ? { borderTop: `3px solid ${accent}` } : undefined}
-    >
-      <div className="flex items-center gap-1.5 text-xs text-foreground-secondary mb-2">
-        <Building2 size={12} />
-        <span className="truncate">{selectedEntidad?.nombre ?? 'Entidad'}</span>
-        <ChevronRight size={12} />
-        <span className="text-foreground font-medium truncate">{selectedArea.nombre}</span>
-      </div>
-
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-            style={accent ? { backgroundColor: `${accent}1A` } : undefined}
-          >
-            <Layers size={20} style={{ color: accent }} />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-xl font-semibold text-foreground truncate">
-              {selectedArea.nombre}
-            </h2>
-            <p className="text-sm text-foreground-secondary">
-              {selectedArea.codigo}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          {areaPe && (
-            <span
-              className={`text-xs px-2.5 py-1 rounded-full whitespace-nowrap flex items-center gap-1.5 text-foreground`}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${activo ? 'bg-success' : 'bg-danger'}`}
-              />
-              {activo ? 'Activo' : 'Inactivo'}
-            </span>
-          )}
-
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen((o) => !o)}
-              title="Acciones"
-              className="p-2 rounded-lg border border-border bg-background text-foreground hover:bg-foreground/5 cursor-pointer"
-            >
-              <MoreVertical size={16} />
-            </button>
-            {menuOpen && (
-              <div className="absolute z-20 top-full right-0 mt-1 rounded-lg border border-border bg-background shadow-lg overflow-hidden min-w-40 origin-top animate-[dropdown-in_0.05s_ease-out]">
-                <button
-                  className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-foreground/5 cursor-pointer flex items-center gap-2"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <Edit size={14} /> Editar
-                </button>
-                <button
-                  className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-foreground/5 cursor-pointer flex items-center gap-2"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <Plus size={14} /> Agregar personal
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ---------- Personal como Metric Cards ---------- */
 
-function PersonalMetricCards({
+export function PersonalMetricCards({
   areaPe,
   loadingPe,
   errorPe,
@@ -330,13 +220,6 @@ function PersonalMetricCards({
   return (
     <div className="flex flex-col gap-3">
       <div className="rounded-xl border border-border bg-background-secondary p-4 flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-foreground-secondary">
-          <Users size={14} />
-          <h3 className="text-xs font-semibold uppercase tracking-wide">
-            Personal del área
-          </h3>
-        </div>
-
         <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border">
           {cards.map((c) => (
             <div key={c.label} className="flex flex-col gap-2 lg:px-4 py-2 lg:py-0 first:lg:pl-0 last:lg:pr-0">
@@ -360,14 +243,6 @@ function PersonalMetricCards({
           ))}
         </div>
 
-        <div className="flex items-center justify-end gap-4 text-xs text-foreground-secondary pt-3 border-t border-border">
-          <span className="flex items-center gap-1" title="Fecha de creación">
-            <Clock size={12} /> Creado: {formatDateTime(areaPe.createdAt)}
-          </span>
-          <span className="flex items-center gap-1" title="Última actualización">
-            <RefreshCw size={12} /> Actualizado: {formatDateTime(areaPe.updatedAt)}
-          </span>
-        </div>
       </div>
     </div>
   );
@@ -393,39 +268,136 @@ function AsignacionesSection({
   if (!hasAreaPe) return null;
 
   const selected = asignaciones.find((a) => a.id === selectedAsignacionId) ?? asignaciones.find((a) => a.es_actual) ?? asignaciones[0] ?? null;
+  const nombreTrim = selected?.trimestre?.nombre_trimestre?.toLowerCase() ?? '';
+  const trimestreNum = nombreTrim.includes('primer') ? 1
+    : nombreTrim.includes('segundo') ? 2
+    : nombreTrim.includes('tercer') ? 3
+    : nombreTrim.includes('cuarto') ? 4
+    : 1;
+  const dosisData = dosisComparativaPorTrimestre.find((d) => d.trimestre === trimestreNum) ?? dosisComparativaPorTrimestre[0];
 
   return (
-    <div className="rounded-2xl border border-border bg-background-secondary p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <CreditCard size={14} className="text-foreground-secondary" />
-          <h3 className="text-xs font-semibold text-foreground-secondary uppercase tracking-wide">
-            Asignacion TLD
-          </h3>
+    <div className="flex flex-col gap-4">
+      <DosisComparativaCard data={dosisData} />
+
+      <div className="rounded-2xl border border-border bg-background-secondary p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <CreditCard size={14} className="text-foreground-secondary" />
+            <h3 className="text-xs font-semibold text-foreground-secondary uppercase tracking-wide">
+              Asignacion TLD
+            </h3>
+          </div>
         </div>
+
+        {loading && <Loading text="Cargando asignaciones" />}
+
+        {!loading && error && (
+          <p className="text-danger text-sm text-center py-6">{error}</p>
+        )}
+
+        {!loading && !error && asignaciones.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <Inbox size={24} className="text-foreground-secondary mb-2" />
+            <p className="text-sm text-foreground-secondary">No han iniciado tus trimestres</p>
+          </div>
+        )}
+
+        {!loading && !error && selected && (
+          <AsignacionDetail asignacion={selected} />
+        )}
       </div>
-
-      {loading && <Loading text="Cargando asignaciones" />}
-
-      {!loading && error && (
-        <p className="text-danger text-sm text-center py-6">{error}</p>
-      )}
-
-      {!loading && !error && asignaciones.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-8 text-center">
-          <Inbox size={24} className="text-foreground-secondary mb-2" />
-          <p className="text-sm text-foreground-secondary">No han iniciado tus trimestres</p>
-        </div>
-      )}
-
-      {!loading && !error && selected && (
-        <AsignacionDetail asignacion={selected} />
-      )}
     </div>
   );
 }
 
-/* ---------- Stepper horizontal continuo ---------- */
+/* ---------- Card comparativa de dosis (MSV) ---------- */
+
+function DosisComparativaCard({ data }: { data: DosisComparativa }) {
+  const signo = data.diferencia.absoluta >= 0 ? '+' : '';
+  const superaUmbral = data.trimestreActual.valor > data.umbral;
+  const cercaUmbral = !superaUmbral && data.trimestreActual.valor >= data.umbral * 0.8;
+
+  return (
+    <div className={`rounded-2xl border bg-background-secondary p-5 ${superaUmbral ? 'border-danger/40' : 'border-border'}`}>
+      {superaUmbral && (
+        <div className="inline-flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-danger/15 border border-danger/40 text-red-800 dark:text-red-300 text-sm w-fit">
+          <AlertTriangle size={14} />
+          Lectura por encima del umbral permitido ({data.umbral} mSv)
+        </div>
+      )}
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-lg font-bold tracking-tight text-foreground">
+              {data.titulo}
+            </h2>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-foreground/5 text-foreground-secondary border border-border">
+              {data.badge}
+            </span>
+          </div>
+          <p className="text-xs text-foreground-secondary mt-0.5">
+            {data.descripcion}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 border-t border-border pt-3 md:border-t-0 md:pt-0 md:flex md:items-center md:gap-4">
+          <div className={`bg-background/70 border-2 rounded-xl px-3.5 py-2 text-center flex flex-col justify-center ${
+            superaUmbral
+              ? 'border-danger/50 animate-[subtle-pulse-danger_1.8s_ease-in-out_infinite]'
+              : cercaUmbral
+                ? 'border-warning/50 animate-[subtle-pulse-warning_1.8s_ease-in-out_infinite]'
+                : 'border-foreground/30 animate-[subtle-pulse_1.8s_ease-in-out_infinite]'
+          }`}>
+            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+              <p className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                Trimestre {data.trimestreActual.anio}
+              </p>
+              <span className="text-xs font-bold uppercase tracking-wider text-foreground/60 bg-foreground/10 px-1.5 py-0.5 rounded">
+                Actual
+              </span>
+            </div>
+            <p className={`text-sm font-bold mt-0.5 ${
+              superaUmbral ? 'text-danger' : cercaUmbral ? 'text-warning' : 'text-foreground'
+            }`}>
+              {data.trimestreActual.valor.toLocaleString('es-CL')} <span className={`text-sm font-medium ${
+                superaUmbral ? 'text-danger' : cercaUmbral ? 'text-warning' : 'text-foreground'
+              }`}>mSv</span>
+              <span className="text-sm font-medium text-foreground-secondary"> / {data.umbral} mSv <span className="text-xs">(umbral)</span></span>
+            </p>
+          </div>
+
+          <div className="bg-background/70 border border-border rounded-xl px-3.5 py-2 text-center flex flex-col justify-center">
+            <p className="text-xs font-semibold uppercase tracking-wider text-foreground-secondary">
+              Trimestre {data.trimestreAnterior.anio}
+            </p>
+            <p className="text-sm font-bold text-foreground mt-0.5">
+              {data.trimestreAnterior.valor.toLocaleString('es-CL')} <span className="text-sm font-medium text-foreground">mSv</span>
+              <span className="text-sm font-medium text-foreground-secondary"> / {data.umbral} mSv <span className="text-xs">(umbral)</span></span>
+            </p>
+          </div>
+
+          <div
+            className="rounded-xl px-3.5 py-2 text-center flex flex-col justify-center border border-border bg-background/70"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider text-foreground-secondary">
+              Diferencia
+            </p>
+            <p className="text-sm font-bold mt-0.5 text-foreground">
+              {signo}{data.diferencia.absoluta.toLocaleString('es-CL')} <span className="text-sm font-medium text-foreground">mSv</span>{' '}
+              <span className="text-xs font-semibold text-foreground-secondary">
+                ({signo}{data.diferencia.porcentaje}%)
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Stepper vertical continuo ---------- */
 
 function AsignacionesStepper({
   asignaciones,
@@ -441,30 +413,112 @@ function AsignacionesStepper({
   );
 
   return (
-    <div className="overflow-x-auto overflow-y-visible -mx-2 px-2 py-4">
-      <div className="flex items-start min-w-full justify-center">
-        {sorted.map((asignacion, idx) => {
-          const trimestre = asignacion.trimestre;
-          const isSelected = asignacion.id === selectedId;
-          const esActual = asignacion.es_actual === true;
-          const color = trimestre?.color ?? 'var(--color-foreground-secondary)';
+    <>
+      {/* Mobile: timeline horizontal centrado */}
+      <div className="lg:hidden overflow-x-auto overflow-y-visible py-4">
+        <div className="flex items-start justify-center min-w-max px-2">
+          {sorted.map((asignacion, idx) => {
+            const trimestre = asignacion.trimestre;
+            const isSelected = asignacion.id === selectedId;
+            const esActual = asignacion.es_actual === true;
+            const color = trimestre?.color ?? 'var(--color-foreground-secondary)';
 
-          let stepStatus: 'completado' | 'actual' | 'pendiente' = 'pendiente';
-          if (asignacion.estado >= 7) {
-            stepStatus = 'completado';
-          } else if (asignacion.estado > 0 || esActual) {
-            stepStatus = 'actual';
-          } else {
-            stepStatus = 'pendiente';
-          }
+            let stepStatus: 'completado' | 'actual' | 'pendiente' = 'pendiente';
+            if (asignacion.estado >= 7) {
+              stepStatus = 'completado';
+            } else if (asignacion.estado > 0 || esActual) {
+              stepStatus = 'actual';
+            } else {
+              stepStatus = 'pendiente';
+            }
 
-          const isLast = idx === sorted.length - 1;
+            const isLast = idx === sorted.length - 1;
 
-          return (
-            <div key={asignacion.id} className="flex items-start shrink-0">
+            return (
+              <div key={asignacion.id} className="flex items-start shrink-0">
+                <button
+                  onClick={() => onSelect(asignacion.id)}
+                  className="flex flex-col items-center gap-1.5 px-2 cursor-pointer group"
+                  title={
+                    trimestre
+                      ? `${trimestre.nombre_trimestre} ${trimestre.anio} · ${getEstadoAsignacionTLD(asignacion.estado).label}`
+                      : `Asignación #${asignacion.id}`
+                  }
+                >
+                  <span
+                    className={`relative w-4 h-4 rounded-full ring-4 ring-background-secondary transition-transform duration-150 flex items-center justify-center ${
+                      isSelected ? 'scale-110 timeline-node-active' : 'group-hover:scale-110'
+                    }`}
+                    style={{ backgroundColor: color }}
+                  >
+                    {stepStatus === 'completado' && (
+                      <Check size={10} className="text-background-secondary" strokeWidth={3} />
+                    )}
+                    {stepStatus === 'actual' && (
+                      <CircleDot size={12} className="absolute text-background-secondary" strokeWidth={3} />
+                    )}
+                  </span>
+                  <span
+                    className="text-xs whitespace-nowrap transition-colors"
+                    style={isSelected ? { color } : { color: 'var(--color-foreground)' }}
+                  >
+                    {trimestre
+                      ? `${trimestre.nombre_trimestre.replace(' Trimestre', 'T')} ${trimestre.anio}`
+                      : `#${asignacion.id}`}
+                  </span>
+                  <span className="flex items-center gap-1 text-xs whitespace-nowrap text-foreground">
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: getEstadoAsignacionTLD(asignacion.estado).color }}
+                    />
+                    {getEstadoAsignacionTLD(asignacion.estado).label}
+                  </span>
+                  {esActual && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ color, backgroundColor: `${color}1a` }}>
+                      Actual
+                    </span>
+                  )}
+                </button>
+
+                {!isLast && (
+                  <div className="flex-1 h-px mt-2 mx-2 min-w-8" style={{ backgroundColor: 'var(--color-border)' }} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Desktop: timeline vertical */}
+      <div className="hidden lg:block relative py-2 pl-7">
+        {/* Línea vertical continua de fondo */}
+        <div
+          className="absolute left-2 top-6 bottom-6 w-px z-0"
+          style={{ backgroundColor: 'var(--color-border)' }}
+          aria-hidden
+        />
+
+        <div className="flex flex-col gap-4 relative z-10">
+          {sorted.map((asignacion) => {
+            const trimestre = asignacion.trimestre;
+            const isSelected = asignacion.id === selectedId;
+            const esActual = asignacion.es_actual === true;
+            const color = trimestre?.color ?? 'var(--color-foreground-secondary)';
+
+            let stepStatus: 'completado' | 'actual' | 'pendiente' = 'pendiente';
+            if (asignacion.estado >= 7) {
+              stepStatus = 'completado';
+            } else if (asignacion.estado > 0 || esActual) {
+              stepStatus = 'actual';
+            } else {
+              stepStatus = 'pendiente';
+            }
+
+            return (
               <button
+                key={asignacion.id}
                 onClick={() => onSelect(asignacion.id)}
-                className="flex flex-col items-center gap-1.5 px-2 cursor-pointer group"
+                className="group flex items-start gap-3 w-full text-left cursor-pointer py-1 -ml-7"
                 title={
                   trimestre
                     ? `${trimestre.nombre_trimestre} ${trimestre.anio} · ${getEstadoAsignacionTLD(asignacion.estado).label}`
@@ -472,7 +526,7 @@ function AsignacionesStepper({
                 }
               >
                 <span
-                  className={`relative w-4 h-4 rounded-full ring-4 ring-background-secondary transition-transform duration-150 flex items-center justify-center ${
+                  className={`relative w-4 h-4 mt-0.5 rounded-full ring-4 ring-background-secondary transition-transform duration-150 flex items-center justify-center shrink-0 ${
                     isSelected ? 'scale-110 timeline-node-active' : 'group-hover:scale-110'
                   }`}
                   style={{ backgroundColor: color }}
@@ -488,39 +542,38 @@ function AsignacionesStepper({
                     />
                   )}
                 </span>
-                <span
-                  className={`text-xs whitespace-nowrap transition-colors`}
-                  style={isSelected ? { color } : { color: 'var(--color-foreground)' }}
-                >
-                  {trimestre
-                    ? `${trimestre.nombre_trimestre.replace(' Trimestre', 'T')} ${trimestre.anio}`
-                    : `#${asignacion.id}`}
-                </span>
-                <span className="flex items-center gap-1 text-xs whitespace-nowrap text-foreground">
-                  <span
-                    className="w-1.5 h-1.5 rounded-full shrink-0"
-                    style={{ backgroundColor: getEstadoAsignacionTLD(asignacion.estado).color }}
-                  />
-                  {getEstadoAsignacionTLD(asignacion.estado).label}
-                </span>
-                {esActual && (
-                  <span className="text-xs px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ color, backgroundColor: `${color}1a` }}>
-                    Actual
-                  </span>
-                )}
-              </button>
 
-              {!isLast && (
-                <div
-                  className="flex-1 h-px mt-2 mx-2 min-w-12"
-                  style={{ backgroundColor: color }}
-                />
-              )}
-            </div>
-          );
-        })}
+                <div className="flex flex-col items-start min-w-0">
+                  <span
+                    className="text-sm transition-colors truncate"
+                    style={isSelected ? { color } : { color: 'var(--color-foreground)' }}
+                  >
+                    {trimestre
+                      ? `${trimestre.nombre_trimestre.replace(' Trimestre', 'T')} ${trimestre.anio}`
+                      : `#${asignacion.id}`}
+                  </span>
+                  <span className="flex items-center gap-1 text-xs whitespace-nowrap text-foreground">
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: getEstadoAsignacionTLD(asignacion.estado).color }}
+                    />
+                    {getEstadoAsignacionTLD(asignacion.estado).label}
+                  </span>
+                  {esActual && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ color, backgroundColor: `${color}1a` }}>
+                      Actual
+                    </span>
+                  )}
+                  <span className="text-[10px] text-foreground-secondary whitespace-nowrap">
+                    Umbral: 5 mSv
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

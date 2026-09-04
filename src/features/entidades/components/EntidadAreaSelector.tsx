@@ -72,7 +72,7 @@ export default function EntidadAreaSelector(props: EntidadAreaSelectorProps) {
 
 /* ---------- Entidad Dropdown + tarjeta compacta ---------- */
 
-function EntidadDropdown({
+export function EntidadDropdown({
   entidades,
   loading,
   error,
@@ -260,6 +260,14 @@ function EntidadDropdown({
                 </div>
               </div>
             )}
+
+            {/* Correo del acceso */}
+            {selectedEntidad?.correo && !open && (
+              <div className="mt-2 px-1 min-w-0 flex flex-wrap items-center gap-x-1 text-sm text-foreground-secondary">
+                <span>Correo asignado en la entidad:</span>
+                <span className="text-foreground font-medium break-all">{selectedEntidad.correo}</span>
+              </div>
+            )}
           </div>
         </>
       )}
@@ -269,7 +277,7 @@ function EntidadDropdown({
 
 /* ---------- Areas Accordion ---------- */
 
-function AreasAccordion({
+export function AreasAccordion({
   areas,
   loading,
   error,

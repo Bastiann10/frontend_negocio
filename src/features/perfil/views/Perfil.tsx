@@ -5,8 +5,8 @@ import { getEntidades, type EntidadResumen } from '../../entidades/services/enti
 import { getAreas, getAreaPe, type AreaResumen, type AreaPe } from '../../areas/services/areas';
 import { getAsignacionesByAreaPe, type Asignacion } from '../../asignaciones/services/asignaciones';
 import { formatChileanRut } from '../../../core/utils/format';
-import EntidadAreaSelector from '../../entidades/components/EntidadAreaSelector';
-import AreaDetalle from '../../entidades/components/AreaDetalle';
+import { EntidadDropdown, AreasAccordion } from '../../entidades/components/EntidadAreaSelector';
+import AreaDetalle, { PersonalMetricCards } from '../../entidades/components/AreaDetalle';
 import EditarPerfilModal from '../components/EditarPerfilModal';
 import Loading from '../../../core/components/Loading';
 
@@ -202,146 +202,162 @@ export default function PerfilPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header del perfil */}
-      {perfil ? (
-      <div className="rounded-2xl border border-border bg-linear-to-b from-background-secondary/50 to-background-secondary p-5">
-        <div className="flex items-start gap-4">
-          <div className="flex items-center gap-4 min-w-0">
-            {perfil.foto_url ? (
-              <img
-                src={perfil.foto_url.startsWith('http') ? perfil.foto_url : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}${perfil.foto_url}`}
-                alt={perfil.nombre}
-                className="w-14 h-14 rounded-xl object-cover shrink-0 ring-1 ring-border max-[500px]:hidden"
-              />
-            ) : (
-              <div className="w-14 h-14 rounded-xl bg-linear-to-br from-foreground/10 to-foreground/20 flex items-center justify-center shrink-0 ring-1 ring-border max-[500px]:hidden">
-                <span className="text-xl font-bold tracking-wider text-foreground-secondary">
-                  {perfil.nombre.charAt(0)}{perfil.apellido.charAt(0)}
-                </span>
-              </div>
-            )}
+      {/* 3 cards arriba: Perfil | Entidad | Área */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,1.4fr)] gap-4 lg:gap-6 items-stretch">
+        {/* Card 1: Perfil */}
+        {perfil ? (
+          <div className="rounded-2xl border border-border bg-linear-to-b from-background-secondary/50 to-background-secondary p-5">
+            <div className="flex items-start gap-4">
+              <div className="flex items-center gap-4 min-w-0">
+                {perfil.foto_url ? (
+                  <img
+                    src={perfil.foto_url.startsWith('http') ? perfil.foto_url : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}${perfil.foto_url}`}
+                    alt={perfil.nombre}
+                    className="w-14 h-14 rounded-xl object-cover shrink-0 ring-1 ring-border max-[500px]:hidden"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-xl bg-linear-to-br from-foreground/10 to-foreground/20 flex items-center justify-center shrink-0 ring-1 ring-border max-[500px]:hidden">
+                    <span className="text-xl font-bold tracking-wider text-foreground-secondary">
+                      {perfil.nombre.charAt(0)}{perfil.apellido.charAt(0)}
+                    </span>
+                  </div>
+                )}
 
-            <div className="min-w-0">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2 h-2 rounded-full bg-success shrink-0" title="Activo" />
-                <h1 className="text-xl font-bold tracking-tight text-foreground">
-                  {perfil.nombre} {perfil.apellido} {perfil.segundo_apellido ?? ''}
-                </h1>
-              </div>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-foreground/5 text-foreground-secondary border border-border w-fit mt-1">
-                {formatChileanRut(perfil.rut)}
-              </span>
-
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs font-medium text-foreground-secondary">
-                <span className="flex items-center gap-1.5 min-w-0">
-                  <Mail size={12} className="shrink-0" />
-                  <span className="break-all">Correo personal: {perfil.correo}</span>
-                </span>
-                {perfil.telefono && (
-                  <span className="flex items-center gap-1.5 shrink-0">
-                    <Phone size={12} />
-                    {perfil.telefono}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-success shrink-0" title="Activo" />
+                    <h1 className="text-xl font-bold tracking-tight text-foreground">
+                      {perfil.nombre} {perfil.apellido} {perfil.segundo_apellido ?? ''}
+                    </h1>
+                  </div>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-foreground/5 text-foreground-secondary border border-border w-fit mt-1">
+                    {formatChileanRut(perfil.rut)}
                   </span>
+
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs font-medium text-foreground-secondary">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <Mail size={12} className="shrink-0" />
+                      <span className="break-all">{perfil.correo}</span>
+                    </span>
+                    {perfil.telefono && (
+                      <span className="flex items-center gap-1.5 shrink-0">
+                        <Phone size={12} />
+                        {perfil.telefono}
+                      </span>
+                    )}
+                  </div>
+
+                  {perfil.profesion_personal.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {perfil.profesion_personal.map((p) => (
+                        <span
+                          key={p.id}
+                          className="px-2 py-0.5 rounded-md text-xs font-medium bg-background border border-border text-foreground"
+                        >
+                          {p.profesion.nombre}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="relative shrink-0 ml-auto" ref={menuRef}>
+                <button
+                  onClick={() => setMenuOpen((o) => !o)}
+                  title="Acciones"
+                  className="p-2 rounded-xl border border-border bg-background text-foreground hover:bg-foreground/5 hover:border-foreground/20 transition-colors cursor-pointer"
+                >
+                  <MoreVertical size={16} />
+                </button>
+                {menuOpen && (
+                  <div className="absolute z-20 top-full right-0 mt-1 rounded-lg border border-border bg-background shadow-lg overflow-hidden min-w-40 origin-top animate-[dropdown-in_0.05s_ease-out]">
+                    <button
+                      className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-foreground/5 cursor-pointer flex items-center gap-2"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setEditModalOpen(true);
+                      }}
+                    >
+                      <Edit size={14} /> Editar
+                    </button>
+                  </div>
                 )}
               </div>
-
-              {perfil.profesion_personal.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {perfil.profesion_personal.map((p) => (
-                    <span
-                      key={p.id}
-                      className="px-2 py-0.5 rounded-md text-xs font-medium bg-background border border-border text-foreground"
-                    >
-                      {p.profesion.nombre}
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
-          </div>
 
-          {/* Menú de acciones pegado al borde derecho */}
-          <div className="relative shrink-0 ml-auto" ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen((o) => !o)}
-              title="Acciones"
-              className="p-2 rounded-xl border border-border bg-background text-foreground hover:bg-foreground/5 hover:border-foreground/20 transition-colors cursor-pointer"
-            >
-              <MoreVertical size={16} />
-            </button>
-            {menuOpen && (
-              <div className="absolute z-20 top-full right-0 mt-1 rounded-lg border border-border bg-background shadow-lg overflow-hidden min-w-40 origin-top animate-[dropdown-in_0.05s_ease-out]">
-                <button
-                  className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-foreground/5 cursor-pointer flex items-center gap-2"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setEditModalOpen(true);
-                  }}
-                >
-                  <Edit size={14} /> Editar
-                </button>
+            {resumen && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-background/60 border border-border text-xs mt-4 flex-wrap">
+                <span className="text-foreground-secondary uppercase font-medium">Entidades: <strong className="text-foreground">{resumen.entidades}</strong></span>
+                <span className="text-border">|</span>
+                <span className="text-foreground-secondary uppercase font-medium">Áreas: <strong className="text-foreground">{resumen.areas}</strong></span>
+                <span className="text-border">|</span>
+                <span className="text-foreground-secondary uppercase font-medium">Trim. ({resumen.anio}): <strong className="text-foreground">{resumen.trimestres_iniciados}</strong></span>
               </div>
             )}
           </div>
-        </div>
-
-        {/* Resumen compacto */}
-        {resumen && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-background/60 border border-border text-xs mt-4 flex-wrap">
-            <span className="text-foreground-secondary uppercase font-medium">Entidades: <strong className="text-foreground">{resumen.entidades}</strong></span>
-            <span className="text-border">|</span>
-            <span className="text-foreground-secondary uppercase font-medium">Áreas: <strong className="text-foreground">{resumen.areas}</strong></span>
-            <span className="text-border">|</span>
-            <span className="text-foreground-secondary uppercase font-medium">Trim. ({resumen.anio}): <strong className="text-foreground">{resumen.trimestres_iniciados}</strong></span>
+        ) : (
+          <div className="rounded-2xl border border-border bg-linear-to-b from-background-secondary/50 to-background-secondary p-5">
+            <Loading text="Cargando perfil..." size="sm" />
           </div>
         )}
-      </div>
-      ) : (
-        <div className="rounded-2xl border border-border bg-linear-to-b from-background-secondary/50 to-background-secondary p-5">
-          <Loading text="Cargando perfil..." size="sm" />
+
+        {/* Card 2: Entidad */}
+        <div className="rounded-2xl border border-border bg-background-secondary p-5 h-full">
+          <EntidadDropdown
+            entidades={entidades}
+            loading={loadingEntidades}
+            error={errorEntidades}
+            selectedId={selectedEntidadId}
+            onSelect={setSelectedEntidadId}
+            selectedEntidad={selectedEntidad}
+            onSearch={searchEntidades}
+          />
         </div>
-      )}
 
-      {/* Selector + Detalle */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] gap-4 lg:gap-6 items-start">
-        <EntidadAreaSelector
-          entidades={entidades}
-          loadingEntidades={loadingEntidades}
-          errorEntidades={errorEntidades}
-          selectedEntidadId={selectedEntidadId}
-          onSelectEntidad={setSelectedEntidadId}
-          selectedEntidad={selectedEntidad}
-          onSearchEntidades={searchEntidades}
-          areas={areas}
-          loadingAreas={loadingAreas}
-          errorAreas={errorAreas}
-          selectedAreaId={selectedAreaId}
-          onSelectArea={setSelectedAreaId}
-          pageAreas={pageAreas}
-          limitAreas={limitAreas}
-          totalAreas={totalAreas}
-          totalPagesAreas={totalPagesAreas}
-          onPageAreasChange={setPageAreas}
-          onSearchAreas={setSearchAreas}
-        />
+        {/* Card 3: Área */}
+        <div className="rounded-2xl border border-border bg-background-secondary p-5 h-full flex flex-col gap-3">
+          <AreasAccordion
+            areas={areas}
+            loading={loadingAreas}
+            error={errorAreas}
+            selectedAreaId={selectedAreaId}
+            onSelectArea={setSelectedAreaId}
+            selectedEntidad={selectedEntidad}
+            loadingEntidades={loadingEntidades}
+            pageAreas={pageAreas}
+            limitAreas={limitAreas}
+            totalAreas={totalAreas}
+            totalPagesAreas={totalPagesAreas}
+            onPageAreasChange={setPageAreas}
+            onSearch={setSearchAreas}
+          />
 
-        <AreaDetalle
-          selectedEntidad={selectedEntidad}
-          selectedArea={selectedArea}
-          loadingEntidades={loadingEntidades}
-          loadingAreas={loadingAreas}
-          areaPe={areaPe}
-          loadingPe={loadingPe}
-          errorPe={errorPe}
-          asignaciones={asignaciones}
-          loadingAsignaciones={loadingAsignaciones}
-          errorAsignaciones={errorAsignaciones}
-          selectedAsignacionId={selectedAsignacionId}
-          onSelectAsignacion={setSelectedAsignacionId}
-          selectedAnio={selectedAnio}
-          onSelectAnio={setSelectedAnio}
-        />
+          <PersonalMetricCards
+            areaPe={areaPe}
+            loadingPe={loadingPe}
+            errorPe={errorPe}
+          />
+        </div>
       </div>
+
+      {/* Detalle abajo */}
+      <AreaDetalle
+        selectedEntidad={selectedEntidad}
+        selectedArea={selectedArea}
+        loadingEntidades={loadingEntidades}
+        loadingAreas={loadingAreas}
+        areaPe={areaPe}
+        loadingPe={loadingPe}
+        errorPe={errorPe}
+        asignaciones={asignaciones}
+        loadingAsignaciones={loadingAsignaciones}
+        errorAsignaciones={errorAsignaciones}
+        selectedAsignacionId={selectedAsignacionId}
+        onSelectAsignacion={setSelectedAsignacionId}
+        selectedAnio={selectedAnio}
+        onSelectAnio={setSelectedAnio}
+      />
 
       {/* Modal de edición */}
       <EditarPerfilModal
