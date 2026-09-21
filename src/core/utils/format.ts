@@ -211,6 +211,29 @@ export function getReadableTextColor(hex: string): string {
 }
 
 /**
+ * Devuelve una versión del color aclarada si es demasiado oscuro para fondos oscuros.
+ * Pensado para iconos/acentos sobre fondos dark. Si el color ya es luminoso, se devuelve igual.
+ * @param hex - Color en formato hex (#rrggbb o #rgb)
+ * @returns Color hex aclarado cuando el original es muy oscuro
+ */
+export function getAccentForDark(hex: string): string {
+  if (!hex) return hex;
+  let c = hex.replace('#', '');
+  if (c.length === 3) {
+    c = c.split('').map((ch) => ch + ch).join('');
+  }
+  const r = parseInt(c.substring(0, 2), 16) / 255;
+  const g = parseInt(c.substring(2, 4), 16) / 255;
+  const b = parseInt(c.substring(4, 6), 16) / 255;
+  if ([r, g, b].some((v) => Number.isNaN(v))) return hex;
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  if (luminance >= 0.35) return hex.startsWith('#') ? hex : `#${hex}`;
+  const mix = (v: number) => Math.round(v * 255 + (255 - v * 255) * 0.55);
+  const toHex = (v: number) => v.toString(16).padStart(2, '0');
+  return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+}
+
+/**
  * Formatea una fecha con hora en formato chileno (24h, mes abreviado)
  * @param date - Fecha como string ISO o Date
  * @returns Fecha formateada (ej: "02 sept. 2026, 16:30") o '—' si es null/undefined

@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Briefcase,
   Inbox, CreditCard, Calendar, Send, ArrowDownToLine, ArrowUpFromLine,
-  CircleDot, Check,
+  CircleDot, Check, ChevronDown, ChevronRight,
   AlertTriangle, Link2, Unlink, PackageCheck,
 } from 'lucide-react';
-import { getAniosByAreaPe, type AreaResumen, type AreaPe } from '../../areas/services/areas';
-import { type Asignacion } from '../../asignaciones/services/asignaciones';
-import { formatDateTime } from '../../../core/utils/format';
+import { getAniosByAreaPe, type PeriodoAnios, type AreaResumen, type AreaPe } from '../../areas/services/areas';
+import { type Asignacion, type DosisAnual, type DosisPeriodo } from '../../asignaciones/services/asignaciones';
+import { formatDateTime, getReadableTextColor } from '../../../core/utils/format';
 import { getRolById } from '../../../core/config/rol';
 import { getEstadoAsignacionTLD } from '../../../core/config/estados';
 import Loading from '../../../core/components/Loading';
 import { type EntidadResumen } from '../services/entidades';
-import { dosisComparativaPorTrimestre, type DosisComparativa } from '../../asignaciones/data/dosisComparativa';
+
 
 /* =================================================================== */
 /* =======================  AREA DETALLE  ============================ */
@@ -27,6 +27,8 @@ export interface AreaDetalleProps {
   loadingPe: boolean;
   errorPe: string | null;
   asignaciones: Asignacion[];
+  dosisAnuales?: DosisAnual[];
+  dosisPeriodo?: DosisPeriodo | null;
   loadingAsignaciones: boolean;
   errorAsignaciones: string | null;
   selectedAsignacionId: number | null;
@@ -61,6 +63,8 @@ export default function AreaDetalle(props: AreaDetalleProps) {
       <AnioSelector
         areaPe={areaPe}
         asignaciones={props.asignaciones}
+        dosisAnuales={props.dosisAnuales}
+        dosisPeriodo={props.dosisPeriodo}
         loadingAsignaciones={props.loadingAsignaciones}
         errorAsignaciones={props.errorAsignaciones}
         selectedAsignacionId={props.selectedAsignacionId}
@@ -71,6 +75,8 @@ export default function AreaDetalle(props: AreaDetalleProps) {
 
       <AsignacionesSection
         asignaciones={props.asignaciones}
+        dosisAnuales={props.dosisAnuales}
+        dosisPeriodo={props.dosisPeriodo}
         loading={props.loadingAsignaciones}
         error={props.errorAsignaciones}
         hasAreaPe={!!areaPe}
@@ -85,6 +91,8 @@ export default function AreaDetalle(props: AreaDetalleProps) {
 function AnioSelector({
   areaPe,
   asignaciones,
+  dosisAnuales,
+  dosisPeriodo,
   loadingAsignaciones,
   errorAsignaciones,
   selectedAsignacionId,
@@ -94,6 +102,8 @@ function AnioSelector({
 }: {
   areaPe: AreaPe | null;
   asignaciones: Asignacion[];
+  dosisAnuales?: DosisAnual[];
+  dosisPeriodo?: DosisPeriodo | null;
   loadingAsignaciones: boolean;
   errorAsignaciones: string | null;
   selectedAsignacionId: number | null;
@@ -101,22 +111,46 @@ function AnioSelector({
   selectedAnio: number | null;
   onSelectAnio: (anio: number | null) => void;
 }) {
-  const [anios, setAnios] = useState<number[]>([]);
+  const [periodos, setPeriodos] = useState<PeriodoAnios[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [periodoAbierto, setPeriodoAbierto] = useState<number | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [open]);
+
+  const toggleOpen = () => {
+    if (!open && periodoAbierto === null) {
+      const actual = periodos.find((p) => selectedAnio !== null && p.anios.includes(selectedAnio));
+      setPeriodoAbierto(actual?.id ?? periodos[0]?.id ?? null);
+    }
+    setOpen(!open);
+  };
 
   useEffect(() => {
     if (!areaPe?.id) {
-      setAnios([]);
+      setPeriodos([]);
       return;
     }
     setLoading(true);
     setError(null);
     getAniosByAreaPe(areaPe.id)
       .then((data) => {
-        setAnios(data);
-        if (data.length > 0 && selectedAnio === null) {
-          onSelectAnio(Math.max(...data));
+        setPeriodos(data);
+        const todosAnios = data.flatMap((p) => p.anios);
+        if (todosAnios.length > 0 && selectedAnio === null) {
+          const anioActual = new Date().getFullYear();
+          onSelectAnio(todosAnios.includes(anioActual) ? anioActual : Math.max(...todosAnios));
         }
       })
       .catch((err: any) => setError(err.message || 'Error al cargar años'))
@@ -127,28 +161,69 @@ function AnioSelector({
 
   return (
     <div className="rounded-xl border border-border bg-background-secondary p-4 flex flex-col gap-4">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm text-foreground-secondary">
           Escoge el año para mostrar sus trimestres
         </span>
-        <select
-          value={selectedAnio ?? ''}
-          onChange={(e) => onSelectAnio(e.target.value ? Number(e.target.value) : null)}
-          disabled={loading || !!error}
-          className="px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent cursor-pointer disabled:opacity-50"
-        >
-          {loading && <option>Cargando...</option>}
-          {error && <option>Error</option>}
-          {!loading && !error && anios.length === 0 && <option value="">Sin años</option>}
-          {!loading && !error && anios.map((anio) => (
-            <option key={anio} value={anio}>{anio}</option>
-          ))}
-        </select>
+        <div className="relative w-full sm:w-auto" ref={dropdownRef}>
+          <button
+            type="button"
+            onClick={toggleOpen}
+            disabled={loading || !!error || periodos.length === 0}
+            className="w-full sm:w-auto flex items-center justify-between gap-2 px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span>{loading ? 'Cargando...' : error ? 'Error' : selectedAnio ?? 'Sin años'}</span>
+            <ChevronDown size={14} className={`text-foreground-secondary transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
+          </button>
+
+          {open && (
+            <div className="absolute left-0 right-0 sm:right-auto mt-1 w-full sm:w-56 bg-background border border-border rounded-xl shadow-lg z-50 animate-dropdown-in overflow-hidden">
+              <div className="max-h-72 overflow-y-auto">
+                {periodos.map((p) => {
+                  const abierto = periodoAbierto === p.id;
+                  const contieneSeleccion = selectedAnio !== null && p.anios.includes(selectedAnio);
+                  return (
+                    <div key={p.id} className="border-b border-border/50 last:border-b-0">
+                      <button
+                        type="button"
+                        onClick={() => setPeriodoAbierto(abierto ? null : p.id)}
+                        className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-foreground-secondary hover:bg-background-secondary transition-colors cursor-pointer"
+                      >
+                        <span>Período {p.anio_inicio} - {p.anio_fin}</span>
+                        {abierto ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                      </button>
+                      {(abierto || contieneSeleccion) && (
+                        <div>
+                          {p.anios.map((anio) => (
+                            <button
+                              key={anio}
+                              type="button"
+                              onClick={() => { onSelectAnio(anio); setOpen(false); }}
+                              className={`w-full flex items-center justify-between px-3 py-2 pl-6 text-sm transition-colors cursor-pointer ${
+                                anio === selectedAnio
+                                  ? 'bg-primary/10 text-foreground font-medium'
+                                  : 'text-foreground hover:bg-background-secondary'
+                              }`}
+                            >
+                              <span>{anio}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="flex items-center gap-2 text-sm text-foreground-secondary">
-        <span><strong className="text-foreground">{dosisComparativaPorTrimestre.reduce((acc, d) => acc + d.trimestreActual.valor, 0).toLocaleString('es-CL')} mSv</strong> / 20 mSv (umbral anual)</span>
-      </div>
+      {dosisAnuales && dosisAnuales.length > 0 && (
+        <div className="flex items-center gap-2 text-sm text-foreground-secondary">
+          <span><strong className="text-foreground">{Number(dosisAnuales[0].dosis_total.toFixed(2)).toLocaleString('es-CL')} mSv</strong> / {dosisPeriodo?.configuracion_umbral?.umbral_anual ?? UMBRAL_ANUAL} mSv (umbral anual)</span>
+        </div>
+      )}
 
       {loadingAsignaciones && <Loading text="Cargando asignaciones" />}
       {!loadingAsignaciones && errorAsignaciones && (
@@ -254,12 +329,16 @@ export function PersonalMetricCards({
 
 function AsignacionesSection({
   asignaciones,
+  dosisAnuales,
+  dosisPeriodo,
   loading,
   error,
   hasAreaPe,
   selectedAsignacionId,
 }: {
   asignaciones: Asignacion[];
+  dosisAnuales?: DosisAnual[];
+  dosisPeriodo?: DosisPeriodo | null;
   loading: boolean;
   error: string | null;
   hasAreaPe: boolean;
@@ -268,17 +347,17 @@ function AsignacionesSection({
   if (!hasAreaPe) return null;
 
   const selected = asignaciones.find((a) => a.id === selectedAsignacionId) ?? asignaciones.find((a) => a.es_actual) ?? asignaciones[0] ?? null;
-  const nombreTrim = selected?.trimestre?.nombre_trimestre?.toLowerCase() ?? '';
-  const trimestreNum = nombreTrim.includes('primer') ? 1
-    : nombreTrim.includes('segundo') ? 2
-    : nombreTrim.includes('tercer') ? 3
-    : nombreTrim.includes('cuarto') ? 4
-    : 1;
-  const dosisData = dosisComparativaPorTrimestre.find((d) => d.trimestre === trimestreNum) ?? dosisComparativaPorTrimestre[0];
+  const dosisAnual = dosisAnuales?.find((d) => d.anio === selected?.trimestre?.anio) ?? dosisAnuales?.[0] ?? null;
 
   return (
     <div className="flex flex-col gap-4">
-      <DosisComparativaCard data={dosisData} />
+      {selected && (
+        <DosisComparativaCard
+          asignacion={selected}
+          dosisAnual={dosisAnual}
+          dosisPeriodo={dosisPeriodo ?? null}
+        />
+      )}
 
       <div className="rounded-2xl border border-border bg-background-secondary p-5">
         <div className="flex items-center justify-between mb-4">
@@ -311,19 +390,47 @@ function AsignacionesSection({
   );
 }
 
-/* ---------- Card comparativa de dosis (MSV) ---------- */
+/* ---------- Card de dosis (datos reales) ---------- */
 
-function DosisComparativaCard({ data }: { data: DosisComparativa }) {
-  const signo = data.diferencia.absoluta >= 0 ? '+' : '';
-  const superaUmbral = data.trimestreActual.valor > data.umbral;
-  const cercaUmbral = !superaUmbral && data.trimestreActual.valor >= data.umbral * 0.8;
+const UMBRAL_TRIMESTRE = 5;
+const UMBRAL_ANUAL = 20;
+const UMBRAL_PERIODO = 50;
+
+function DosisComparativaCard({
+  asignacion,
+  dosisAnual,
+  dosisPeriodo,
+}: {
+  asignacion: Asignacion;
+  dosisAnual: DosisAnual | null;
+  dosisPeriodo: DosisPeriodo | null;
+}) {
+  const config = dosisPeriodo?.configuracion_umbral;
+  const umbralTrim = config?.umbral_trimestre ?? UMBRAL_TRIMESTRE;
+  const umbralAnual = config?.umbral_anual ?? UMBRAL_ANUAL;
+  const umbralPeriodo = config?.umbral_periodo ?? UMBRAL_PERIODO;
+
+  const dosisTrim = asignacion.dosis_trimestre?.dosis ?? null;
+  const valorAnual = dosisAnual?.dosis_total ?? null;
+  const valorPeriodo = dosisPeriodo?.dosis_total ?? null;
+  const tieneLectura = asignacion.tiene_lectura === true;
+
+  const nivel = (v: number | null, umbral: number) =>
+    v === null ? 'normal'
+    : v > umbral ? 'supera'
+    : v >= umbral * 0.8 ? 'cerca'
+    : 'normal';
+  const nivelTrim = nivel(dosisTrim, umbralTrim);
+  const nivelAnual = nivel(valorAnual, umbralAnual);
+  const nivelPeriodo = nivel(valorPeriodo, umbralPeriodo);
+  const hayAlerta = nivelTrim === 'supera' || nivelAnual === 'supera' || nivelPeriodo === 'supera';
 
   return (
-    <div className={`rounded-2xl border bg-background-secondary p-5 ${superaUmbral ? 'border-danger/40' : 'border-border'}`}>
-      {superaUmbral && (
+    <div className={`rounded-2xl border bg-background-secondary p-5 ${hayAlerta ? 'border-danger/40' : 'border-border'}`}>
+      {hayAlerta && (
         <div className="inline-flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-danger/15 border border-danger/40 text-red-800 dark:text-red-300 text-sm w-fit">
           <AlertTriangle size={14} />
-          Lectura por encima del umbral permitido ({data.umbral} mSv)
+          Lectura por encima del umbral permitido
         </div>
       )}
 
@@ -331,68 +438,87 @@ function DosisComparativaCard({ data }: { data: DosisComparativa }) {
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-lg font-bold tracking-tight text-foreground">
-              {data.titulo}
+              Lectura TLD — {asignacion.trimestre?.nombre_trimestre ?? 'Trimestre'}
             </h2>
             <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-foreground/5 text-foreground-secondary border border-border">
-              {data.badge}
+              {asignacion.trimestre?.anio}
             </span>
           </div>
           <p className="text-xs text-foreground-secondary mt-0.5">
-            {data.descripcion}
+            Dosis acumulada del trabajador
           </p>
         </div>
 
         <div className="grid grid-cols-3 gap-3 border-t border-border pt-3 md:border-t-0 md:pt-0 md:flex md:items-center md:gap-4">
-          <div className={`bg-background/70 border-2 rounded-xl px-3.5 py-2 text-center flex flex-col justify-center ${
-            superaUmbral
-              ? 'border-danger/50 animate-[subtle-pulse-danger_1.8s_ease-in-out_infinite]'
-              : cercaUmbral
-                ? 'border-warning/50 animate-[subtle-pulse-warning_1.8s_ease-in-out_infinite]'
-                : 'border-foreground/30 animate-[subtle-pulse_1.8s_ease-in-out_infinite]'
-          }`}>
-            <div className="flex items-center justify-center gap-1.5 flex-wrap">
-              <p className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                Trimestre {data.trimestreActual.anio}
-              </p>
-              <span className="text-xs font-bold uppercase tracking-wider text-foreground/60 bg-foreground/10 px-1.5 py-0.5 rounded">
-                Actual
-              </span>
-            </div>
-            <p className={`text-sm font-bold mt-0.5 ${
-              superaUmbral ? 'text-danger' : cercaUmbral ? 'text-warning' : 'text-foreground'
-            }`}>
-              {data.trimestreActual.valor.toLocaleString('es-CL')} <span className={`text-sm font-medium ${
-                superaUmbral ? 'text-danger' : cercaUmbral ? 'text-warning' : 'text-foreground'
-              }`}>mSv</span>
-              <span className="text-sm font-medium text-foreground-secondary"> / {data.umbral} mSv <span className="text-xs">(umbral)</span></span>
-            </p>
-          </div>
-
-          <div className="bg-background/70 border border-border rounded-xl px-3.5 py-2 text-center flex flex-col justify-center">
-            <p className="text-xs font-semibold uppercase tracking-wider text-foreground-secondary">
-              Trimestre {data.trimestreAnterior.anio}
-            </p>
-            <p className="text-sm font-bold text-foreground mt-0.5">
-              {data.trimestreAnterior.valor.toLocaleString('es-CL')} <span className="text-sm font-medium text-foreground">mSv</span>
-              <span className="text-sm font-medium text-foreground-secondary"> / {data.umbral} mSv <span className="text-xs">(umbral)</span></span>
-            </p>
-          </div>
-
-          <div
-            className="rounded-xl px-3.5 py-2 text-center flex flex-col justify-center border border-border bg-background/70"
-          >
-            <p className="text-xs font-semibold uppercase tracking-wider text-foreground-secondary">
-              Diferencia
-            </p>
-            <p className="text-sm font-bold mt-0.5 text-foreground">
-              {signo}{data.diferencia.absoluta.toLocaleString('es-CL')} <span className="text-sm font-medium text-foreground">mSv</span>{' '}
-              <span className="text-xs font-semibold text-foreground-secondary">
-                ({signo}{data.diferencia.porcentaje}%)
-              </span>
-            </p>
-          </div>
+          <DosisBloque
+            label={`Trimestre ${asignacion.trimestre?.anio ?? ''}`}
+            valor={tieneLectura ? dosisTrim : null}
+            umbral={umbralTrim}
+            nivel={tieneLectura ? nivelTrim : 'normal'}
+            badge="Actual"
+            sinLectura={!tieneLectura}
+          />
+          <DosisBloque
+            label="Dosis anual"
+            valor={valorAnual}
+            umbral={umbralAnual}
+            nivel={nivelAnual}
+          />
+          <DosisBloque
+            label="Dosis período"
+            valor={valorPeriodo}
+            umbral={umbralPeriodo}
+            nivel={nivelPeriodo}
+          />
         </div>
       </div>
+    </div>
+  );
+}
+
+function DosisBloque({
+  label,
+  valor,
+  umbral,
+  nivel,
+  badge,
+  sinLectura,
+}: {
+  label: string;
+  valor: number | null;
+  umbral: number;
+  nivel: 'normal' | 'cerca' | 'supera';
+  badge?: string;
+  sinLectura?: boolean;
+}) {
+  const colorTexto = nivel === 'supera' ? 'text-danger' : nivel === 'cerca' ? 'text-warning' : 'text-foreground';
+  const borderClase = nivel === 'supera'
+    ? 'border-danger/50 animate-[subtle-pulse-danger_1.8s_ease-in-out_infinite]'
+    : nivel === 'cerca'
+      ? 'border-warning/50 animate-[subtle-pulse-warning_1.8s_ease-in-out_infinite]'
+      : 'border-foreground/30 animate-[subtle-pulse_1.8s_ease-in-out_infinite]';
+
+  return (
+    <div className={`bg-background/70 border-2 rounded-xl px-3.5 py-2 text-center flex flex-col justify-center ${borderClase}`}>
+      <div className="flex items-center justify-center gap-1.5 flex-wrap">
+        <p className="text-xs font-semibold uppercase tracking-wider text-foreground">
+          {label}
+        </p>
+        {badge && (
+          <span className="text-xs font-bold uppercase tracking-wider text-foreground/60 bg-foreground/10 px-1.5 py-0.5 rounded">
+            {badge}
+          </span>
+        )}
+      </div>
+      {sinLectura ? (
+        <p className="text-sm font-bold mt-0.5 text-foreground-secondary italic">Sin lectura</p>
+      ) : (
+        <p className={`text-sm font-bold mt-0.5 ${colorTexto}`}>
+          {valor !== null ? Number(valor.toFixed(2)).toLocaleString('es-CL') : '—'}{' '}
+          <span className={`text-sm font-medium ${colorTexto}`}>mSv</span>
+          <span className="text-sm font-medium text-foreground-secondary"> / {umbral} mSv <span className="text-xs">(umbral)</span></span>
+        </p>
+      )}
     </div>
   );
 }
@@ -433,6 +559,9 @@ function AsignacionesStepper({
             }
 
             const isLast = idx === sorted.length - 1;
+            const iconColor = color.startsWith('#')
+              ? getReadableTextColor(color)
+              : 'var(--color-background)';
 
             return (
               <div key={asignacion.id} className="flex items-start shrink-0">
@@ -452,10 +581,10 @@ function AsignacionesStepper({
                     style={{ backgroundColor: color }}
                   >
                     {stepStatus === 'completado' && (
-                      <Check size={10} className="text-background-secondary" strokeWidth={3} />
+                      <Check size={10} style={{ color: iconColor }} strokeWidth={3} />
                     )}
                     {stepStatus === 'actual' && (
-                      <CircleDot size={12} className="absolute text-background-secondary" strokeWidth={3} />
+                      <CircleDot size={12} className="absolute" style={{ color: iconColor }} strokeWidth={3} />
                     )}
                   </span>
                   <span
@@ -514,6 +643,10 @@ function AsignacionesStepper({
               stepStatus = 'pendiente';
             }
 
+            const iconColor = color.startsWith('#')
+              ? getReadableTextColor(color)
+              : 'var(--color-background)';
+
             return (
               <button
                 key={asignacion.id}
@@ -532,12 +665,13 @@ function AsignacionesStepper({
                   style={{ backgroundColor: color }}
                 >
                   {stepStatus === 'completado' && (
-                    <Check size={10} className="text-background-secondary" strokeWidth={3} />
+                    <Check size={10} style={{ color: iconColor }} strokeWidth={3} />
                   )}
                   {stepStatus === 'actual' && (
                     <CircleDot
                       size={12}
-                      className="absolute text-background-secondary"
+                      className="absolute"
+                      style={{ color: iconColor }}
                       strokeWidth={3}
                     />
                   )}
@@ -564,9 +698,6 @@ function AsignacionesStepper({
                       Actual
                     </span>
                   )}
-                  <span className="text-[10px] text-foreground-secondary whitespace-nowrap">
-                    Umbral: 5 mSv
-                  </span>
                 </div>
               </button>
             );

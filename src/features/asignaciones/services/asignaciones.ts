@@ -25,11 +25,63 @@ export interface Trimestre {
   id: number;
   creado_por: number;
   nombre_trimestre: string;
+  numero: number;
   anio: number;
   color: string;
   inicio: string;
   termino: string;
   createdAt: string;
+  updatedAt?: string;
+}
+
+export interface DosisTrimestre {
+  id: number;
+  id_dosis_anual: number;
+  creado_por: number;
+  id_trimestre: number;
+  dosis: number;
+  estado_noti: number;
+  estado: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DosisAnual {
+  id: number;
+  id_dosis_periodo: number;
+  creado_por: number;
+  id_area_pe: number;
+  anio: number;
+  dosis_total: number;
+  estado_noti: number;
+  estado: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConfiguracionUmbral {
+  id: number;
+  creado_por: number;
+  umbral_trimestre: number;
+  umbral_anual: number;
+  umbral_periodo: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DosisPeriodo {
+  id: number;
+  id_configuracion_umbral: number;
+  creado_por: number;
+  id_acceso_entidad_pe: number;
+  fecha_inicio: string;
+  fecha_fin: string;
+  dosis_total: number;
+  estado: number;
+  estado_noti: number;
+  createdAt: string;
+  updatedAt: string;
+  configuracion_umbral?: ConfiguracionUmbral | null;
 }
 
 export interface AreaPe {
@@ -67,11 +119,15 @@ export interface Asignacion {
   tarjeta_tld: TarjetaTld | null;
   trimestre: Trimestre;
   area_pe: AreaPe;
+  dosis_trimestre?: DosisTrimestre | null;
+  tiene_lectura?: boolean;
   es_actual?: boolean;
 }
 
 export interface AsignacionesResponse {
   asignaciones: Asignacion[];
+  dosis_anuales?: DosisAnual[];
+  dosis_periodo?: DosisPeriodo | null;
 }
 
 export interface EntregarAsignacionResponse {

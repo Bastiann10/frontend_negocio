@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { MoreVertical, Edit, Mail, Phone } from 'lucide-react';
-import { getPerfil, updatePerfil, type Perfil as PerfilType, type PerfilResumen, type UpdatePerfilPayload } from '../services/perfil';
+import { updatePerfil, type UpdatePerfilPayload } from '../services/perfil';
+import { usePerfil } from '../../../core/providers/PerfilProvider';
 import { getEntidades, type EntidadResumen } from '../../entidades/services/entidades';
 import { getAreas, getAreaPe, type AreaResumen, type AreaPe } from '../../areas/services/areas';
-import { getAsignacionesByAreaPe, type Asignacion } from '../../asignaciones/services/asignaciones';
+import { getAsignacionesByAreaPe, type Asignacion, type DosisAnual, type DosisPeriodo } from '../../asignaciones/services/asignaciones';
 import { formatChileanRut } from '../../../core/utils/format';
 import { EntidadDropdown, AreasAccordion } from '../../entidades/components/EntidadAreaSelector';
 import AreaDetalle, { PersonalMetricCards } from '../../entidades/components/AreaDetalle';
@@ -12,9 +13,7 @@ import Loading from '../../../core/components/Loading';
 
 export default function PerfilPage() {
   // --- Perfil ---
-  const [perfil, setPerfil] = useState<PerfilType | null>(null);
-  const [resumen, setResumen] = useState<PerfilResumen | null>(null);
-  const [errorPerfil, setErrorPerfil] = useState('');
+  const { perfil, resumen, error: errorPerfil, refetch: refetchPerfil } = usePerfil();
   const [menuOpen, setMenuOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -53,20 +52,12 @@ export default function PerfilPage() {
 
   // --- Asignaciones ---
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
+  const [dosisAnuales, setDosisAnuales] = useState<DosisAnual[]>([]);
+  const [dosisPeriodo, setDosisPeriodo] = useState<DosisPeriodo | null>(null);
   const [loadingAsignaciones, setLoadingAsignaciones] = useState(false);
   const [errorAsignaciones, setErrorAsignaciones] = useState<string | null>(null);
   const [selectedAsignacionId, setSelectedAsignacionId] = useState<number | null>(null);
   const [selectedAnio, setSelectedAnio] = useState<number | null>(null);
-
-  // Carga del perfil
-  useEffect(() => {
-    getPerfil()
-      .then((data) => {
-        setPerfil(data.perfil);
-        setResumen(data.resumen);
-      })
-      .catch((err: any) => setErrorPerfil(err.message));
-  }, []);
 
   // Carga inicial de entidades
   useEffect(() => {
@@ -156,6 +147,8 @@ export default function PerfilPage() {
       setAreaPe(null);
       setErrorPe(null);
       setAsignaciones([]);
+      setDosisAnuales([]);
+      setDosisPeriodo(null);
       setErrorAsignaciones(null);
       return;
     }
@@ -167,32 +160,44 @@ export default function PerfilPage() {
       .finally(() => setLoadingPe(false));
   }, [selectedAreaId, selectedEntidadId]);
 
-  // Carga de asignaciones
+  // Carga de asignaciones — optimista con el año actual mientras llega la lista de años
+  const asignacionesReq = useRef<{ areaPeId: number; anio: number } | null>(null);
   useEffect(() => {
     if (!areaPe?.id) {
+      asignacionesReq.current = null;
       setAsignaciones([]);
+      setDosisAnuales([]);
+      setDosisPeriodo(null);
       setErrorAsignaciones(null);
       setSelectedAsignacionId(null);
       return;
     }
+    const anio = selectedAnio ?? new Date().getFullYear();
+    if (asignacionesReq.current?.areaPeId === areaPe.id && asignacionesReq.current.anio === anio) return;
+    asignacionesReq.current = { areaPeId: areaPe.id, anio };
     setLoadingAsignaciones(true);
     setErrorAsignaciones(null);
-    getAsignacionesByAreaPe(areaPe.id, selectedAnio ?? undefined)
+    getAsignacionesByAreaPe(areaPe.id, anio)
       .then((data) => {
+        if (asignacionesReq.current?.areaPeId !== areaPe.id || asignacionesReq.current.anio !== anio) return;
         setAsignaciones(data.asignaciones);
+        setDosisAnuales(data.dosis_anuales ?? []);
+        setDosisPeriodo(data.dosis_periodo ?? null);
         const actual = data.asignaciones.find((a) => a.es_actual) ?? data.asignaciones[0];
         setSelectedAsignacionId(actual ? actual.id : null);
       })
-      .catch((err: any) => setErrorAsignaciones(err.message || 'Error al cargar asignaciones'))
-      .finally(() => setLoadingAsignaciones(false));
+      .catch((err: any) => {
+        if (asignacionesReq.current?.anio !== anio) return;
+        setErrorAsignaciones(err.message || 'Error al cargar asignaciones');
+      })
+      .finally(() => {
+        if (asignacionesReq.current?.anio === anio) setLoadingAsignaciones(false);
+      });
   }, [areaPe?.id, selectedAnio]);
 
   const handleSavePerfil = async (payload: UpdatePerfilPayload): Promise<string> => {
     const res = await updatePerfil(payload);
-    // Recargar perfil
-    const data = await getPerfil();
-    setPerfil(data.perfil);
-    setResumen(data.resumen);
+    await refetchPerfil();
     return res.message;
   };
 
@@ -353,6 +358,8 @@ export default function PerfilPage() {
         loadingPe={loadingPe}
         errorPe={errorPe}
         asignaciones={asignaciones}
+        dosisAnuales={dosisAnuales}
+        dosisPeriodo={dosisPeriodo}
         loadingAsignaciones={loadingAsignaciones}
         errorAsignaciones={errorAsignaciones}
         selectedAsignacionId={selectedAsignacionId}

@@ -116,7 +116,14 @@ export const getAlertasArea = async (id: number): Promise<AlertasAreaResponse> =
   return data;
 };
 
-export const getAniosByAreaPe = async (idAreaPe: number): Promise<number[]> => {
+export interface PeriodoAnios {
+  id: number;
+  anio_inicio: number;
+  anio_fin: number;
+  anios: number[];
+}
+
+export const getAniosByAreaPe = async (idAreaPe: number): Promise<PeriodoAnios[]> => {
   const response = await fetchWithAuth(`${API_BASE_URL}/portal/areas/anios-by-area-pe/${idAreaPe}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
@@ -129,5 +136,21 @@ export const getAniosByAreaPe = async (idAreaPe: number): Promise<number[]> => {
     throw new Error(data.message || 'Error al obtener años del área');
   }
 
-  return data.anios ?? data;
+  if (Array.isArray(data.periodos)) {
+    return data.periodos.map((p: any) => ({
+      id: p.id,
+      anio_inicio: p.anio_inicio,
+      anio_fin: p.anio_fin,
+      anios: Array.isArray(p.anios) ? [...p.anios].sort((a: number, b: number) => b - a) : [],
+    }));
+  }
+
+  const anios: number[] = Array.isArray(data) ? data : Array.isArray(data.anios) ? data.anios : [];
+  if (anios.length === 0) return [];
+  return [{
+    id: 0,
+    anio_inicio: Math.min(...anios),
+    anio_fin: Math.max(...anios),
+    anios: [...anios].sort((a, b) => b - a),
+  }];
 };

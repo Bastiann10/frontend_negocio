@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getEntidades, type EntidadResumen } from '../services/entidades';
 import { getAreas, getAreaPe, type AreaResumen, type AreaPe } from '../../areas/services/areas';
-import { getAsignacionesByAreaPe, type Asignacion } from '../../asignaciones/services/asignaciones';
+import { getAsignacionesByAreaPe, type Asignacion, type DosisAnual, type DosisPeriodo } from '../../asignaciones/services/asignaciones';
 import EntidadAreaSelector from '../components/EntidadAreaSelector';
 import AreaDetalle from '../components/AreaDetalle';
 
@@ -30,6 +30,8 @@ export default function ListaEntidadPage() {
 
   // --- Asignaciones del personal ---
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
+  const [dosisAnuales, setDosisAnuales] = useState<DosisAnual[]>([]);
+  const [dosisPeriodo, setDosisPeriodo] = useState<DosisPeriodo | null>(null);
   const [loadingAsignaciones, setLoadingAsignaciones] = useState(false);
   const [errorAsignaciones, setErrorAsignaciones] = useState<string | null>(null);
   const [selectedAsignacionId, setSelectedAsignacionId] = useState<number | null>(null);
@@ -125,6 +127,8 @@ export default function ListaEntidadPage() {
       setAreaPe(null);
       setErrorPe(null);
       setAsignaciones([]);
+      setDosisAnuales([]);
+      setDosisPeriodo(null);
       setErrorAsignaciones(null);
       return;
     }
@@ -136,24 +140,39 @@ export default function ListaEntidadPage() {
       .finally(() => setLoadingPe(false));
   }, [selectedAreaId, selectedEntidadId]);
 
-  // Carga de asignaciones
+  // Carga de asignaciones — optimista con el año actual mientras llega la lista de años
+  const asignacionesReq = useRef<{ areaPeId: number; anio: number } | null>(null);
   useEffect(() => {
     if (!areaPe?.id) {
+      asignacionesReq.current = null;
       setAsignaciones([]);
+      setDosisAnuales([]);
+      setDosisPeriodo(null);
       setErrorAsignaciones(null);
       setSelectedAsignacionId(null);
       return;
     }
+    const anio = selectedAnio ?? new Date().getFullYear();
+    if (asignacionesReq.current?.areaPeId === areaPe.id && asignacionesReq.current.anio === anio) return;
+    asignacionesReq.current = { areaPeId: areaPe.id, anio };
     setLoadingAsignaciones(true);
     setErrorAsignaciones(null);
-    getAsignacionesByAreaPe(areaPe.id, selectedAnio ?? undefined)
+    getAsignacionesByAreaPe(areaPe.id, anio)
       .then((data) => {
+        if (asignacionesReq.current?.areaPeId !== areaPe.id || asignacionesReq.current.anio !== anio) return;
         setAsignaciones(data.asignaciones);
+        setDosisAnuales(data.dosis_anuales ?? []);
+        setDosisPeriodo(data.dosis_periodo ?? null);
         const actual = data.asignaciones.find((a) => a.es_actual) ?? data.asignaciones[0];
         setSelectedAsignacionId(actual ? actual.id : null);
       })
-      .catch((err: any) => setErrorAsignaciones(err.message || 'Error al cargar asignaciones'))
-      .finally(() => setLoadingAsignaciones(false));
+      .catch((err: any) => {
+        if (asignacionesReq.current?.anio !== anio) return;
+        setErrorAsignaciones(err.message || 'Error al cargar asignaciones');
+      })
+      .finally(() => {
+        if (asignacionesReq.current?.anio === anio) setLoadingAsignaciones(false);
+      });
   }, [areaPe?.id, selectedAnio]);
 
   return (
@@ -196,6 +215,8 @@ export default function ListaEntidadPage() {
           loadingPe={loadingPe}
           errorPe={errorPe}
           asignaciones={asignaciones}
+          dosisAnuales={dosisAnuales}
+          dosisPeriodo={dosisPeriodo}
           loadingAsignaciones={loadingAsignaciones}
           errorAsignaciones={errorAsignaciones}
           selectedAsignacionId={selectedAsignacionId}

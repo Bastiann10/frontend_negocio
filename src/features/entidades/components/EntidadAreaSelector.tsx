@@ -4,7 +4,8 @@ import {
 } from 'lucide-react';
 import { type EntidadResumen } from '../services/entidades';
 import { type AreaResumen } from '../../areas/services/areas';
-import { formatChileanRut } from '../../../core/utils/format';
+import { formatChileanRut, getAccentForDark, getReadableTextColor } from '../../../core/utils/format';
+import { useTheme } from '../../../core/providers/ThemeProvider';
 import Loading from '../../../core/components/Loading';
 import Pagination from '../../../core/components/Pagination';
 import SmartImage from '../../../core/components/SmartImage';
@@ -70,6 +71,34 @@ export default function EntidadAreaSelector(props: EntidadAreaSelectorProps) {
   );
 }
 
+/* ---------- Chip de icono con color de entidad (sólido + contraste) ---------- */
+
+function AccentIconChip({
+  color,
+  className,
+  children,
+}: {
+  color?: string;
+  className: string;
+  children: React.ReactNode;
+}) {
+  const isHex = !!color && color.startsWith('#');
+  return (
+    <div
+      className={`flex items-center justify-center shrink-0 ${className} ${
+        isHex ? '' : 'bg-foreground/5 text-foreground-secondary'
+      }`}
+      style={
+        isHex
+          ? { backgroundColor: color, color: getReadableTextColor(color!) }
+          : undefined
+      }
+    >
+      {children}
+    </div>
+  );
+}
+
 /* ---------- Entidad Dropdown + tarjeta compacta ---------- */
 
 export function EntidadDropdown({
@@ -92,6 +121,7 @@ export function EntidadDropdown({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const ref = useRef<HTMLDivElement>(null);
+  const { actualTheme } = useTheme();
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -106,6 +136,9 @@ export function EntidadDropdown({
   const handleSearch = () => {
     onSearch(query);
   };
+
+  const iconAccent = (hex: string | undefined) =>
+    hex && actualTheme === 'dark' ? getAccentForDark(hex) : hex;
 
   return (
     <div className="flex flex-col gap-2">
@@ -129,7 +162,7 @@ export function EntidadDropdown({
               className="w-full text-left rounded-xl border border-border bg-background-secondary p-3 cursor-pointer transition-all duration-150 hover:bg-foreground/3 flex items-center gap-3"
               style={
                 selectedEntidad
-                  ? { borderLeft: `4px solid ${selectedEntidad.color_primario}` }
+                  ? { borderLeft: `4px solid ${iconAccent(selectedEntidad.color_primario)}` }
                   : undefined
               }
             >
@@ -147,12 +180,12 @@ export function EntidadDropdown({
                       imgClassName="w-full h-full object-contain"
                     />
                   ) : (
-                    <div
-                      className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: `${selectedEntidad.color_primario}1A` }}
+                    <AccentIconChip
+                      color={selectedEntidad.color_primario}
+                      className="w-9 h-9 rounded-lg"
                     >
-                      <Building2 size={16} style={{ color: selectedEntidad.color_primario }} />
-                    </div>
+                      <Building2 size={16} />
+                    </AccentIconChip>
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-foreground text-sm truncate">
@@ -222,7 +255,7 @@ export function EntidadDropdown({
                         className={`w-full text-left px-3 py-2.5 cursor-pointer flex items-center gap-3 transition-colors ${
                           isSelected ? 'bg-foreground/5' : 'hover:bg-foreground/3'
                         }`}
-                        style={{ borderLeft: `3px solid ${entidad.color_primario}` }}
+                        style={{ borderLeft: `3px solid ${iconAccent(entidad.color_primario)}` }}
                       >
                         {entidad.logo_url ? (
                           <SmartImage
@@ -236,12 +269,12 @@ export function EntidadDropdown({
                             imgClassName="w-full h-full object-contain"
                           />
                         ) : (
-                          <div
-                            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                            style={{ backgroundColor: `${entidad.color_primario}1A` }}
+                          <AccentIconChip
+                            color={entidad.color_primario}
+                            className="w-8 h-8 rounded-lg"
                           >
-                            <Building2 size={14} style={{ color: entidad.color_primario }} />
-                          </div>
+                            <Building2 size={14} />
+                          </AccentIconChip>
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-foreground text-sm truncate">
@@ -252,7 +285,7 @@ export function EntidadDropdown({
                           </p>
                         </div>
                         {isSelected && (
-                          <Check size={14} className="text-primary shrink-0" />
+                          <Check size={14} className="text-success shrink-0" />
                         )}
                       </button>
                     );
@@ -309,7 +342,6 @@ export function AreasAccordion({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const ref = useRef<HTMLDivElement>(null);
-  const accent = selectedEntidad?.color_primario;
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -331,10 +363,7 @@ export function AreasAccordion({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 px-1">
-        <span
-          className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-          style={accent ? { backgroundColor: `${accent}1A`, color: accent } : undefined}
-        >
+        <span className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-foreground/5 text-foreground-secondary">
           <Layers size={14} />
         </span>
         <h2 className="text-xs font-semibold text-foreground-secondary uppercase tracking-wide">
@@ -367,12 +396,12 @@ export function AreasAccordion({
                 onClick={() => setOpen((o) => !o)}
                 className="w-full text-left rounded-xl border border-border bg-background-secondary p-3 cursor-pointer transition-all duration-150 hover:bg-foreground/3 flex items-center gap-3"
               >
-                <div
-                  className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                  style={accent ? { backgroundColor: `${accent}1A` } : undefined}
+                <AccentIconChip
+                  color={selectedEntidad?.color_primario}
+                  className="w-9 h-9 rounded-lg"
                 >
-                  <Layers size={16} style={{ color: accent }} />
-                </div>
+                  <Layers size={16} />
+                </AccentIconChip>
                 <div className="flex-1 min-w-0">
                   <p className="text-foreground text-sm truncate">
                     {selectedArea?.nombre ?? 'Selecciona un área...'}
@@ -436,12 +465,12 @@ export function AreasAccordion({
                             isSelected ? 'bg-foreground/5' : 'hover:bg-foreground/3'
                           }`}
                         >
-                          <div
-                            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                            style={accent ? { backgroundColor: `${accent}1A` } : undefined}
+                          <AccentIconChip
+                            color={selectedEntidad?.color_primario}
+                            className="w-8 h-8 rounded-lg"
                           >
-                            <Layers size={14} style={{ color: accent }} />
-                          </div>
+                            <Layers size={14} />
+                          </AccentIconChip>
                           <div className="flex-1 min-w-0">
                             <p className="text-foreground text-sm truncate">
                               {area.nombre}
@@ -451,7 +480,7 @@ export function AreasAccordion({
                             </p>
                           </div>
                           {isSelected && (
-                            <Check size={14} className="text-primary shrink-0" />
+                            <Check size={14} className="text-success shrink-0" />
                           )}
                         </button>
                       );

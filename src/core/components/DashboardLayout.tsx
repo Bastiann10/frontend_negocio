@@ -1,14 +1,23 @@
-import { useState, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router";
 import { LogOut } from "lucide-react";
 import { useLogo } from "../providers/LogoProvider";
-import { getPerfil } from "../../features/perfil/services/perfil.ts";
+import { PerfilProvider, usePerfil } from "../providers/PerfilProvider";
 import { logout } from "../../features/auth/services/auth.ts";
 import AuthErrorModal from "./AuthErrorModal";
 import SmartImage from "./SmartImage";
+import AlertasDropdown from "../../features/alertas/components/AlertasDropdown";
 
 export default function DashboardLayout() {
-  const [fotoUrl, setFotoUrl] = useState<string | null>(null);
+  return (
+    <PerfilProvider>
+      <DashboardLayoutContent />
+    </PerfilProvider>
+  );
+}
+
+function DashboardLayoutContent() {
+  const { perfil } = usePerfil();
+  const fotoUrl = perfil?.foto_url ?? null;
   const { logoUrl } = useLogo();
   const navigate = useNavigate();
 
@@ -18,12 +27,6 @@ export default function DashboardLayout() {
   const userApellido = userData?.apellido || '';
   const fullName = `${userName} ${userApellido}`.trim();
   const initials = `${userName.charAt(0).toUpperCase()}${userApellido.charAt(0).toUpperCase()}`.trim() || userName.charAt(0).toUpperCase();
-
-  useEffect(() => {
-    getPerfil()
-      .then((data) => setFotoUrl(data.perfil.foto_url ?? null))
-      .catch(() => {});
-  }, []);
 
   const handleLogout = async () => {
     try {
@@ -75,6 +78,7 @@ export default function DashboardLayout() {
                 {fullName}
               </span>
             </div>
+            <AlertasDropdown />
             <button
               onClick={handleLogout}
               className="p-2 rounded-lg shrink-0 cursor-pointer transition-colors duration-100 ease-out text-background dark:text-foreground hover:bg-sidebar-hover"
