@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Building2 } from 'lucide-react';
 import { getEntidades, type EntidadResumen } from '../services/entidades';
+import SmartImage from '../../../core/components/SmartImage';
 
 export default function EntidadesPage() {
   const [entidades, setEntidades] = useState<EntidadResumen[]>([]);
@@ -31,7 +33,13 @@ export default function EntidadesPage() {
             <p className="font-medium text-foreground">{item.nombre}</p>
             <p className="text-sm text-foreground-secondary">{item.rut}</p>
             {item.logo_url && (
-              <img src={item.logo_url} alt={item.nombre} className="h-12 w-12 object-contain mt-2" />
+              <SmartImage
+                src={item.logo_url}
+                alt={item.nombre}
+                className="h-12 w-12 mt-2 flex items-center justify-center"
+                imgClassName="h-full w-full object-contain"
+                fallback={<Building2 size={20} className="text-foreground-secondary" />}
+              />
             )}
           </div>
         ))}

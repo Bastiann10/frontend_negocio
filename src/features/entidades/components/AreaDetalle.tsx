@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Briefcase,
   Inbox, CreditCard, Calendar, Send, ArrowDownToLine, ArrowUpFromLine,
-  CircleDot, Check, ChevronDown, ChevronRight,
+  CircleDot, Check, ChevronDown, ChevronRight, Play,
   AlertTriangle, Link2, Unlink, PackageCheck,
 } from 'lucide-react';
-import { getAniosByAreaPe, type PeriodoAnios, type AreaResumen, type AreaPe } from '../../areas/services/areas';
+import { getAniosByAreaPe, type PeriodoAnios, type AniosByAreaPeResponse, type AreaResumen, type AreaPe } from '../../areas/services/areas';
 import { type Asignacion, type DosisAnual, type DosisPeriodo } from '../../asignaciones/services/asignaciones';
-import { formatDateTime, getReadableTextColor } from '../../../core/utils/format';
+import { formatDateTime, formatDosis, getReadableTextColor } from '../../../core/utils/format';
+import { usePrecision } from '../../../core/providers/PrecisionProvider';
 import { getRolById } from '../../../core/config/rol';
 import { getEstadoAsignacionTLD } from '../../../core/config/estados';
 import Loading from '../../../core/components/Loading';
@@ -35,6 +36,8 @@ export interface AreaDetalleProps {
   onSelectAsignacion: (id: number) => void;
   selectedAnio: number | null;
   onSelectAnio: (anio: number | null) => void;
+  selectedIdDosisPeriodo: number | null;
+  onSelectIdDosisPeriodo: (id: number | null) => void;
 }
 
 export default function AreaDetalle(props: AreaDetalleProps) {
@@ -71,6 +74,8 @@ export default function AreaDetalle(props: AreaDetalleProps) {
         onSelectAsignacion={props.onSelectAsignacion}
         selectedAnio={props.selectedAnio}
         onSelectAnio={props.onSelectAnio}
+        selectedIdDosisPeriodo={props.selectedIdDosisPeriodo}
+        onSelectIdDosisPeriodo={props.onSelectIdDosisPeriodo}
       />
 
       <AsignacionesSection
@@ -99,6 +104,8 @@ function AnioSelector({
   onSelectAsignacion,
   selectedAnio,
   onSelectAnio,
+  selectedIdDosisPeriodo,
+  onSelectIdDosisPeriodo,
 }: {
   areaPe: AreaPe | null;
   asignaciones: Asignacion[];
@@ -110,8 +117,12 @@ function AnioSelector({
   onSelectAsignacion: (id: number) => void;
   selectedAnio: number | null;
   onSelectAnio: (anio: number | null) => void;
+  selectedIdDosisPeriodo: number | null;
+  onSelectIdDosisPeriodo: (id: number | null) => void;
 }) {
+  const { aproximar } = usePrecision();
   const [periodos, setPeriodos] = useState<PeriodoAnios[]>([]);
+  const [aniosSinPeriodo, setAniosSinPeriodo] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -131,8 +142,15 @@ function AnioSelector({
 
   const toggleOpen = () => {
     if (!open && periodoAbierto === null) {
-      const actual = periodos.find((p) => selectedAnio !== null && p.anios.includes(selectedAnio));
-      setPeriodoAbierto(actual?.id ?? periodos[0]?.id ?? null);
+      // Abrir el período que contiene el año seleccionado, o el primero
+      if (selectedIdDosisPeriodo !== null) {
+        setPeriodoAbierto(selectedIdDosisPeriodo);
+      } else if (selectedAnio !== null) {
+        const actual = periodos.find((p) => p.anios.includes(selectedAnio));
+        setPeriodoAbierto(actual?.id ?? periodos[0]?.id ?? null);
+      } else {
+        setPeriodoAbierto(periodos[0]?.id ?? null);
+      }
     }
     setOpen(!open);
   };
@@ -140,17 +158,22 @@ function AnioSelector({
   useEffect(() => {
     if (!areaPe?.id) {
       setPeriodos([]);
+      setAniosSinPeriodo([]);
       return;
     }
     setLoading(true);
     setError(null);
     getAniosByAreaPe(areaPe.id)
-      .then((data) => {
-        setPeriodos(data);
-        const todosAnios = data.flatMap((p) => p.anios);
+      .then((data: AniosByAreaPeResponse) => {
+        setPeriodos(data.periodos);
+        setAniosSinPeriodo(data.anios_sin_periodo);
+        const todosAnios = [...data.periodos.flatMap((p) => p.anios), ...data.anios_sin_periodo];
         if (todosAnios.length > 0 && selectedAnio === null) {
           const anioActual = new Date().getFullYear();
           onSelectAnio(todosAnios.includes(anioActual) ? anioActual : Math.max(...todosAnios));
+          // Determinar el id_dosis_periodo del año seleccionado automáticamente
+          const periodoDelAnio = data.periodos.find((p) => p.anios.includes(todosAnios.includes(anioActual) ? anioActual : Math.max(...todosAnios)));
+          onSelectIdDosisPeriodo(periodoDelAnio ? periodoDelAnio.id : null);
         }
       })
       .catch((err: any) => setError(err.message || 'Error al cargar años'))
@@ -158,6 +181,14 @@ function AnioSelector({
   }, [areaPe?.id]);
 
   if (!areaPe) return null;
+
+  const hayAnios = periodos.length > 0 || aniosSinPeriodo.length > 0;
+
+  const handleSelectAnio = (anio: number, idDosisPeriodo: number | null) => {
+    onSelectAnio(anio);
+    onSelectIdDosisPeriodo(idDosisPeriodo);
+    setOpen(false);
+  };
 
   return (
     <div className="rounded-xl border border-border bg-background-secondary p-4 flex flex-col gap-4">
@@ -169,7 +200,7 @@ function AnioSelector({
           <button
             type="button"
             onClick={toggleOpen}
-            disabled={loading || !!error || periodos.length === 0}
+            disabled={loading || !!error || !hayAnios}
             className="w-full sm:w-auto flex items-center justify-between gap-2 px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span>{loading ? 'Cargando...' : error ? 'Error' : selectedAnio ?? 'Sin años'}</span>
@@ -181,7 +212,7 @@ function AnioSelector({
               <div className="max-h-72 overflow-y-auto">
                 {periodos.map((p) => {
                   const abierto = periodoAbierto === p.id;
-                  const contieneSeleccion = selectedAnio !== null && p.anios.includes(selectedAnio);
+                  const contieneSeleccion = selectedAnio !== null && selectedIdDosisPeriodo === p.id && p.anios.includes(selectedAnio);
                   return (
                     <div key={p.id} className="border-b border-border/50 last:border-b-0">
                       <button
@@ -198,9 +229,9 @@ function AnioSelector({
                             <button
                               key={anio}
                               type="button"
-                              onClick={() => { onSelectAnio(anio); setOpen(false); }}
+                              onClick={() => handleSelectAnio(anio, p.id)}
                               className={`w-full flex items-center justify-between px-3 py-2 pl-6 text-sm transition-colors cursor-pointer ${
-                                anio === selectedAnio
+                                anio === selectedAnio && selectedIdDosisPeriodo === p.id
                                   ? 'bg-primary/10 text-foreground font-medium'
                                   : 'text-foreground hover:bg-background-secondary'
                               }`}
@@ -213,6 +244,36 @@ function AnioSelector({
                     </div>
                   );
                 })}
+                {aniosSinPeriodo.length > 0 && (
+                  <div className="border-b border-border/50 last:border-b-0">
+                    <button
+                      type="button"
+                      onClick={() => setPeriodoAbierto(periodoAbierto === -1 ? null : -1)}
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-foreground-secondary hover:bg-background-secondary transition-colors cursor-pointer"
+                    >
+                      <span>Sin período</span>
+                      {periodoAbierto === -1 ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                    </button>
+                    {(periodoAbierto === -1 || (selectedAnio !== null && selectedIdDosisPeriodo === null && aniosSinPeriodo.includes(selectedAnio))) && (
+                      <div>
+                        {aniosSinPeriodo.map((anio) => (
+                          <button
+                            key={anio}
+                            type="button"
+                            onClick={() => handleSelectAnio(anio, null)}
+                            className={`w-full flex items-center justify-between px-3 py-2 pl-6 text-sm transition-colors cursor-pointer ${
+                              anio === selectedAnio && selectedIdDosisPeriodo === null
+                                ? 'bg-primary/10 text-foreground font-medium'
+                                : 'text-foreground hover:bg-background-secondary'
+                            }`}
+                          >
+                            <span>{anio}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -221,7 +282,7 @@ function AnioSelector({
 
       {dosisAnuales && dosisAnuales.length > 0 && (
         <div className="flex items-center gap-2 text-sm text-foreground-secondary">
-          <span><strong className="text-foreground">{Number(dosisAnuales[0].dosis_total.toFixed(2)).toLocaleString('es-CL')} mSv</strong> / {dosisPeriodo?.configuracion_umbral?.umbral_anual ?? UMBRAL_ANUAL} mSv (umbral anual)</span>
+          <span><strong className="text-foreground">{formatDosis(dosisAnuales[0].dosis_total, aproximar)} mSv</strong> / {formatDosis(dosisPeriodo?.configuracion_umbral?.umbral_anual ?? UMBRAL_ANUAL, aproximar)} mSv (umbral anual)</span>
         </div>
       )}
 
@@ -491,6 +552,7 @@ function DosisBloque({
   badge?: string;
   sinLectura?: boolean;
 }) {
+  const { aproximar } = usePrecision();
   const colorTexto = nivel === 'supera' ? 'text-danger' : nivel === 'cerca' ? 'text-warning' : 'text-foreground';
   const borderClase = nivel === 'supera'
     ? 'border-danger/50 animate-[subtle-pulse-danger_1.8s_ease-in-out_infinite]'
@@ -514,9 +576,9 @@ function DosisBloque({
         <p className="text-sm font-bold mt-0.5 text-foreground-secondary italic">Sin lectura</p>
       ) : (
         <p className={`text-sm font-bold mt-0.5 ${colorTexto}`}>
-          {valor !== null ? Number(valor.toFixed(2)).toLocaleString('es-CL') : '—'}{' '}
+          {valor !== null ? formatDosis(valor, aproximar) : '—'}{' '}
           <span className={`text-sm font-medium ${colorTexto}`}>mSv</span>
-          <span className="text-sm font-medium text-foreground-secondary"> / {umbral} mSv <span className="text-xs">(umbral)</span></span>
+          <span className="text-sm font-medium text-foreground-secondary"> / {formatDosis(umbral, aproximar)} mSv <span className="text-xs">(umbral)</span></span>
         </p>
       )}
     </div>
@@ -744,6 +806,11 @@ function AsignacionDetail({ asignacion }: { asignacion: Asignacion }) {
       fecha: asignacion.fecha_vinculacion_tld,
     },
     {
+      icon: <Play size={14} />,
+      label: 'Inicio uso TLD',
+      fecha: asignacion.fecha_inicio_uso_tld,
+    },
+    {
       icon: <Unlink size={14} />,
       label: 'Desvinculación TLD',
       fecha: asignacion.fecha_desvinculacion_tld,
@@ -815,7 +882,7 @@ function AsignacionDetail({ asignacion }: { asignacion: Asignacion }) {
           <p className="text-xs text-foreground-secondary uppercase tracking-wide mb-0.5">
             Envío y recepción
           </p>
-          {estados.slice(0, 3).map((e) => {
+          {estados.slice(0, 4).map((e) => {
             const done = !!e.fecha;
             return (
               <div

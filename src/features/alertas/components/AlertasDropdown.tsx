@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Bell, TriangleAlert } from "lucide-react";
-import { getAlertasDosis, marcarAlertaLeida, type AlertaEntidad, type AlertaDosisPeriodo } from "../services/alertas.ts";
+import { getAlertasDosis, marcarAlertaLeida, type AlertaDosisPeriodo } from "../services/alertas.ts";
+import { formatDosis } from "../../../core/utils/format";
+import { usePrecision } from "../../../core/providers/PrecisionProvider";
 
 interface AlertaItem {
   id: number;
@@ -25,67 +27,46 @@ interface EntidadGrupo {
   otros: AlertaItem[];
 }
 
-function formatDosis(dosis?: number) {
-  return dosis != null ? Number(dosis.toFixed(2)).toLocaleString('es-CL') : '—';
-}
+function groupAlertas(alertas: AlertaDosisPeriodo[]): EntidadGrupo[] {
+  const grupos = new Map<string, EntidadGrupo>();
 
-function groupAlertas(alertas: AlertaEntidad[]): EntidadGrupo[] {
-  const grupos: EntidadGrupo[] = [];
+  const mkItem = (
+    n: { id: number; dosis?: number; umbral?: number; estado_noti: number },
+    nivel: AlertaItem['nivel'],
+    tipo: string,
+    detalle: string,
+  ): AlertaItem => ({
+    id: n.id, nivel, tipo, detalle,
+    dosis: n.dosis, umbral: n.umbral, estadoNoti: n.estado_noti,
+  });
 
-  for (const a of alertas) {
-    const mkItem = (
-      n: { id: number; dosis?: number; umbral?: number; estado_noti: number },
-      nivel: AlertaItem['nivel'],
-      tipo: string,
-      detalle: string,
-    ): AlertaItem => ({
-      id: n.id, nivel, tipo, detalle,
-      dosis: n.dosis, umbral: n.umbral, estadoNoti: n.estado_noti,
-    });
-
-    const otros: AlertaItem[] = [];
-    for (const t of a.dosis_trimestre ?? []) {
-      if (t.estado === 1) otros.push(mkItem(t, 'trimestre', t.trimestre, `${t.anio}`));
-    }
-    for (const an of a.dosis_anual ?? []) {
-      if (an.estado === 1) otros.push(mkItem(an, 'anual', 'Dosis anual', `${an.anio}`));
-      for (const t of an.dosis_trimestre ?? []) {
-        if (t.estado === 1) otros.push(mkItem(t, 'trimestre', t.trimestre, `${t.anio}`));
+  for (const p of alertas) {
+    const items: AlertaItem[] = [];
+    for (const an of p.dosis_anual_pe ?? p.dosis_anual ?? []) {
+      if (an.estado === 1) items.push(mkItem(an, 'anual', 'Dosis anual', `${an.anio ?? ''}`));
+      for (const t of an.dosis_trimestre_pe ?? an.dosis_trimestre ?? []) {
+        if (t.estado === 1) items.push(mkItem(t, 'trimestre', t.trimestre ?? 'Trimestre', `${t.anio ?? ''}`));
       }
     }
 
-    const periodosRaw: AlertaDosisPeriodo[] = Array.isArray(a.dosis_periodo)
-      ? a.dosis_periodo
-      : a.dosis_periodo ? [a.dosis_periodo] : [];
+    const rango = p.fecha_inicio && p.fecha_fin
+      ? `${new Date(p.fecha_inicio).getFullYear()} - ${new Date(p.fecha_fin).getFullYear()}`
+      : '';
+    const periodoAlerta = p.estado === 1 ? mkItem(p, 'periodo', 'Dosis período', rango) : null;
 
-    const periodos: PeriodoGrupo[] = periodosRaw.map((p) => {
-      const items: AlertaItem[] = [];
-      for (const an of p.dosis_anual ?? []) {
-        if (an.estado === 1) items.push(mkItem(an, 'anual', 'Dosis anual', `${an.anio}`));
-        for (const t of an.dosis_trimestre ?? []) {
-          if (t.estado === 1) items.push(mkItem(t, 'trimestre', t.trimestre, `${t.anio}`));
-        }
-      }
-      const rango = p.fecha_inicio && p.fecha_fin
-        ? `${new Date(p.fecha_inicio).getFullYear()} - ${new Date(p.fecha_fin).getFullYear()}`
-        : '';
-      return {
-        id: p.id,
-        rango,
-        periodoAlerta: p.estado === 1 ? mkItem(p, 'periodo', 'Dosis período', rango) : null,
-        items,
-      };
-    }).filter((g) => g.periodoAlerta !== null || g.items.length > 0);
+    if (!periodoAlerta && items.length === 0) continue;
 
-    if (periodos.length > 0 || otros.length > 0) {
-      grupos.push({ entidad: a.entidad, periodos, otros });
-    }
+    const entidad = p.entidad ?? 'Mis alertas';
+    const grupo = grupos.get(entidad) ?? { entidad, periodos: [], otros: [] };
+    grupo.periodos.push({ id: p.id, rango, periodoAlerta, items });
+    grupos.set(entidad, grupo);
   }
 
-  return grupos;
+  return [...grupos.values()];
 }
 
 export default function AlertasDropdown() {
+  const { aproximar } = usePrecision();
   const [open, setOpen] = useState(false);
   const [grupos, setGrupos] = useState<EntidadGrupo[]>([]);
   const ref = useRef<HTMLDivElement>(null);
@@ -145,8 +126,8 @@ export default function AlertasDropdown() {
         </div>
         {a.dosis != null && (
           <span className="text-sm font-semibold text-danger shrink-0">
-            {formatDosis(a.dosis)} mSv
-            {a.umbral != null && <span className="font-normal text-foreground-secondary"> / {formatDosis(a.umbral)}</span>}
+            {formatDosis(a.dosis, aproximar)} mSv
+            {a.umbral != null && <span className="font-normal text-foreground-secondary"> / {formatDosis(a.umbral, aproximar)}</span>}
           </span>
         )}
         {a.estadoNoti === 1 && (
@@ -202,7 +183,7 @@ export default function AlertasDropdown() {
                         <span className="text-xs font-semibold text-foreground">
                           Período {p.rango}
                           {p.periodoAlerta?.dosis != null && (
-                            <span className="font-semibold text-danger"> · {formatDosis(p.periodoAlerta.dosis)} mSv{p.periodoAlerta.umbral != null ? ` / ${formatDosis(p.periodoAlerta.umbral)}` : ''}</span>
+                            <span className="font-semibold text-danger"> · {formatDosis(p.periodoAlerta.dosis, aproximar)} mSv{p.periodoAlerta.umbral != null ? ` / ${formatDosis(p.periodoAlerta.umbral, aproximar)}` : ''}</span>
                           )}
                         </span>
                         {p.periodoAlerta?.estadoNoti === 1 && (

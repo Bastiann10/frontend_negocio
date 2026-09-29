@@ -12,12 +12,7 @@ interface EditarPerfilModalProps {
 }
 
 export default function EditarPerfilModal({ isOpen, onClose, perfil, onSave }: EditarPerfilModalProps) {
-  const [nombre, setNombre] = useState('');
-  const [apellido, setApellido] = useState('');
-  const [segundoApellido, setSegundoApellido] = useState('');
   const [correo, setCorreo] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [cambiarPassword, setCambiarPassword] = useState(false);
   const [passwordActual, setPasswordActual] = useState('');
   const [passwordNueva, setPasswordNueva] = useState('');
   const [passwordConfirmar, setPasswordConfirmar] = useState('');
@@ -30,12 +25,7 @@ export default function EditarPerfilModal({ isOpen, onClose, perfil, onSave }: E
 
   useEffect(() => {
     if (isOpen && perfil) {
-      setNombre(perfil.nombre);
-      setApellido(perfil.apellido);
-      setSegundoApellido(perfil.segundo_apellido ?? '');
       setCorreo(perfil.correo);
-      setTelefono(perfil.telefono ?? '');
-      setCambiarPassword(false);
       setPasswordActual('');
       setPasswordNueva('');
       setPasswordConfirmar('');
@@ -59,9 +49,33 @@ export default function EditarPerfilModal({ isOpen, onClose, perfil, onSave }: E
     e.preventDefault();
     setErrorMsg('');
 
-    if (cambiarPassword) {
-      if (!passwordActual || !passwordNueva || !passwordConfirmar) {
-        setErrorMsg('Completa todos los campos de contraseña');
+    if (!perfil) return;
+
+    const cambiaPassword = passwordNueva !== '' || passwordConfirmar !== '';
+    const cambiaCorreo = correo !== perfil.correo;
+
+    if (!cambiaCorreo && !cambiaPassword) {
+      setErrorMsg('No hay cambios para guardar');
+      return;
+    }
+
+    if (cambiaCorreo && !correo.trim()) {
+      setErrorMsg('El correo no puede estar vacío');
+      return;
+    }
+
+    if (!passwordActual) {
+      setErrorMsg('Ingresa tu contraseña actual para confirmar los cambios');
+      return;
+    }
+
+    if (cambiaPassword) {
+      if (!passwordNueva || !passwordConfirmar) {
+        setErrorMsg('Completa la nueva contraseña y su confirmación');
+        return;
+      }
+      if (passwordNueva.length < 6) {
+        setErrorMsg('La nueva contraseña debe tener al menos 6 caracteres');
         return;
       }
       if (passwordNueva !== passwordConfirmar) {
@@ -70,24 +84,11 @@ export default function EditarPerfilModal({ isOpen, onClose, perfil, onSave }: E
       }
     }
 
-    // Solo enviar campos que cambiaron nulos ver que pasa ahi
-    if (!perfil) return;
-    const payload: UpdatePerfilPayload = {};
-    if (nombre !== perfil.nombre) payload.nombre = nombre;
-    if (apellido !== perfil.apellido) payload.apellido = apellido;
-    if (segundoApellido !== (perfil.segundo_apellido ?? '')) payload.segundo_apellido = segundoApellido;
-    if (correo !== perfil.correo) payload.correo = correo;
-    if (telefono !== (perfil.telefono ?? '')) payload.telefono = telefono;
-
-    if (cambiarPassword) {
-      payload.contrasena_actual = passwordActual;
-      payload.contrasena_nueva = passwordNueva;
-    }
-
-    if (Object.keys(payload).length === 0) {
-      setErrorMsg('No hay cambios para guardar');
-      return;
-    }
+    const payload: UpdatePerfilPayload = {
+      contrasena_actual: passwordActual,
+    };
+    if (cambiaCorreo) payload.correo = correo;
+    if (cambiaPassword) payload.contrasena_nueva = passwordNueva;
 
     setModalState('loading');
     try {
@@ -99,6 +100,8 @@ export default function EditarPerfilModal({ isOpen, onClose, perfil, onSave }: E
       setModalState('error');
     }
   };
+
+  const loading = modalState === 'loading';
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-60 p-4">
@@ -123,137 +126,84 @@ export default function EditarPerfilModal({ isOpen, onClose, perfil, onSave }: E
         </div>
 
         {/* Formulario */}
-        {(modalState === 'form' || modalState === 'loading') && (
+        {(modalState === 'form' || loading) && (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-foreground-secondary mb-1">Nombre</label>
-              <input
-                type="text"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                disabled={modalState === 'loading'}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent disabled:opacity-50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-foreground-secondary mb-1">Apellido</label>
-              <input
-                type="text"
-                value={apellido}
-                onChange={(e) => setApellido(e.target.value)}
-                disabled={modalState === 'loading'}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent disabled:opacity-50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-foreground-secondary mb-1">Segundo apellido</label>
-              <input
-                type="text"
-                value={segundoApellido}
-                onChange={(e) => setSegundoApellido(e.target.value)}
-                disabled={modalState === 'loading'}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent disabled:opacity-50"
-              />
-            </div>
-
             <div>
               <label className="block text-xs font-medium text-foreground-secondary mb-1">Correo</label>
               <input
                 type="email"
                 value={correo}
                 onChange={(e) => setCorreo(e.target.value)}
-                disabled={modalState === 'loading'}
+                disabled={loading}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent disabled:opacity-50"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-foreground-secondary mb-1">Teléfono</label>
-              <input
-                type="text"
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
-                disabled={modalState === 'loading'}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent disabled:opacity-50"
-              />
+            {/* Verificación */}
+            <div className="pt-2 border-t border-border">
+              <label className="block text-xs font-medium text-foreground-secondary mb-1">Contraseña actual <span className="text-danger">*</span></label>
+              <div className="relative">
+                <input
+                  type={showPassActual ? 'text' : 'password'}
+                  value={passwordActual}
+                  onChange={(e) => setPasswordActual(e.target.value)}
+                  disabled={loading}
+                  placeholder="Requerida para guardar cambios"
+                  className="w-full px-3 py-2 pr-10 text-sm rounded-lg border border-border bg-background-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent disabled:opacity-50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassActual((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-foreground-secondary hover:text-foreground cursor-pointer"
+                >
+                  {showPassActual ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             {/* Cambiar contraseña */}
-            <div className="pt-2 border-t border-border">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={cambiarPassword}
-                  onChange={(e) => setCambiarPassword(e.target.checked)}
-                  disabled={modalState === 'loading'}
-                  className="w-4 h-4 rounded cursor-pointer accent-primary disabled:opacity-50"
-                />
-                <span className="text-sm text-foreground">Cambiar contraseña</span>
-              </label>
-
-              {cambiarPassword && (
-                <div className="space-y-3 mt-3">
-                  <div>
-                    <label className="block text-xs font-medium text-foreground-secondary mb-1">Contraseña actual</label>
-                    <div className="relative">
-                      <input
-                        type={showPassActual ? 'text' : 'password'}
-                        value={passwordActual}
-                        onChange={(e) => setPasswordActual(e.target.value)}
-                        disabled={modalState === 'loading'}
-                        className="w-full px-3 py-2 pr-10 text-sm rounded-lg border border-border bg-background-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent disabled:opacity-50"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassActual((v) => !v)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-foreground-secondary hover:text-foreground cursor-pointer"
-                      >
-                        {showPassActual ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-foreground-secondary mb-1">Nueva contraseña</label>
-                    <div className="relative">
-                      <input
-                        type={showPassNueva ? 'text' : 'password'}
-                        value={passwordNueva}
-                        onChange={(e) => setPasswordNueva(e.target.value)}
-                        disabled={modalState === 'loading'}
-                        className="w-full px-3 py-2 pr-10 text-sm rounded-lg border border-border bg-background-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent disabled:opacity-50"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassNueva((v) => !v)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-foreground-secondary hover:text-foreground cursor-pointer"
-                      >
-                        {showPassNueva ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-foreground-secondary mb-1">Confirmar contraseña</label>
-                    <div className="relative">
-                      <input
-                        type={showPassConfirmar ? 'text' : 'password'}
-                        value={passwordConfirmar}
-                        onChange={(e) => setPasswordConfirmar(e.target.value)}
-                        disabled={modalState === 'loading'}
-                        className="w-full px-3 py-2 pr-10 text-sm rounded-lg border border-border bg-background-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent disabled:opacity-50"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassConfirmar((v) => !v)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-foreground-secondary hover:text-foreground cursor-pointer"
-                      >
-                        {showPassConfirmar ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
+            <div className="pt-2 border-t border-border space-y-3">
+              <p className="text-sm text-foreground-secondary">Cambiar contraseña <span className="text-xs">(opcional)</span></p>
+              <div>
+                <label className="block text-xs font-medium text-foreground-secondary mb-1">Nueva contraseña</label>
+                <div className="relative">
+                  <input
+                    type={showPassNueva ? 'text' : 'password'}
+                    value={passwordNueva}
+                    onChange={(e) => setPasswordNueva(e.target.value)}
+                    disabled={loading}
+                    minLength={6}
+                    className="w-full px-3 py-2 pr-10 text-sm rounded-lg border border-border bg-background-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent disabled:opacity-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassNueva((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-foreground-secondary hover:text-foreground cursor-pointer"
+                  >
+                    {showPassNueva ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
-              )}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-foreground-secondary mb-1">Confirmar nueva contraseña</label>
+                <div className="relative">
+                  <input
+                    type={showPassConfirmar ? 'text' : 'password'}
+                    value={passwordConfirmar}
+                    onChange={(e) => setPasswordConfirmar(e.target.value)}
+                    disabled={loading}
+                    minLength={6}
+                    className="w-full px-3 py-2 pr-10 text-sm rounded-lg border border-border bg-background-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent disabled:opacity-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassConfirmar((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-foreground-secondary hover:text-foreground cursor-pointer"
+                  >
+                    {showPassConfirmar ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {errorMsg && modalState === 'form' && (
@@ -264,7 +214,7 @@ export default function EditarPerfilModal({ isOpen, onClose, perfil, onSave }: E
               <button
                 type="button"
                 onClick={handleClose}
-                disabled={modalState === 'loading'}
+                disabled={loading}
                 className="flex-1 px-4 py-2 text-foreground rounded-lg hover:bg-foreground/5 cursor-pointer flex items-center justify-center gap-2 border border-border disabled:opacity-50"
               >
                 <X size={16} />
@@ -272,10 +222,10 @@ export default function EditarPerfilModal({ isOpen, onClose, perfil, onSave }: E
               </button>
               <button
                 type="submit"
-                disabled={modalState === 'loading'}
+                disabled={loading}
                 className="flex-1 px-4 py-2 bg-primary text-white dark:text-foreground rounded-lg hover:bg-primary-hover cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {modalState === 'loading' ? (
+                {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 dark:border-foreground/30 rounded-full border-t-transparent animate-spin" />
                     Guardando...

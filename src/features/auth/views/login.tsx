@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { login } from '../services/auth.ts';
 import { useLoginForm } from '../hook/useAuthForm.ts';
 import { useLogo } from '../../../core/providers/LogoProvider.tsx';
-import { Eye, EyeOff } from 'lucide-react';
+import { Building2, Eye, EyeOff } from 'lucide-react';
 import SmartImage from '../../../core/components/SmartImage.tsx';
 import { cleanChileanRut, formatRutOnChange } from '../../../core/utils/format.ts';
 import RecuperarClaveModal from '../components/RecuperarClaveModal.tsx';
@@ -59,6 +59,7 @@ export default function LoginPage() {
                 alt="Logo"
                 className="h-20 w-20 mx-auto mb-4 flex items-center justify-center rounded-lg p-2"
                 imgClassName="h-full w-full object-contain"
+                fallback={<Building2 size={40} className="text-foreground-secondary" />}
               />
             )}
             <h1 className="text-2xl font-bold text-foreground mb-2">Portal de Dosimetría</h1>

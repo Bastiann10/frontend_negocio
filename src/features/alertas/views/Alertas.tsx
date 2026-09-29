@@ -1,51 +1,60 @@
 import { useEffect, useState } from 'react';
-import { getAlertas, type Alerta } from '../services/alertas';
+import { getAlertasDosis, type AlertaDosisPeriodo } from '../services/alertas';
+import { formatDosis } from '../../../core/utils/format';
+import { usePrecision } from '../../../core/providers/PrecisionProvider';
 
 export default function AlertasPage() {
-  const [alertas, setAlertas] = useState<Alerta[]>([]);
-  const [anio, setAnio] = useState<number | null>(null);
-  const [trimestre, setTrimestre] = useState<number | null>(null);
+  const { aproximar } = usePrecision();
+  const [alertas, setAlertas] = useState<AlertaDosisPeriodo[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    getAlertas()
-      .then((data) => {
-        setAlertas(data.alertas);
-        setAnio(data.anio_actual);
-        setTrimestre(data.trimestre_actual);
-      })
-      .catch((err: any) => setError(err.message));
+    getAlertasDosis()
+      .then((data) => setAlertas(Array.isArray(data) ? data : []))
+      .catch((err: any) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
   if (error) {
     return <p className="text-danger">{error}</p>;
   }
 
-  if (alertas.length === 0) {
+  if (loading) {
+    return <p className="text-foreground-secondary">Cargando alertas...</p>;
+  }
+
+  const activas = alertas.filter((a) => a.estado === 1);
+
+  if (activas.length === 0) {
     return <p className="text-foreground-secondary">Sin alertas activas.</p>;
   }
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-foreground">Alertas</h1>
-      {anio && trimestre && (
-        <p className="text-foreground-secondary">Año {anio} - Trimestre {trimestre}</p>
-      )}
       <div className="grid gap-4">
-        {alertas.map((alerta, index) => (
-          <div
-            key={index}
-            className="bg-background rounded-xl border border-border p-4"
-          >
-            <p className="font-medium text-foreground capitalize">{alerta.tipo.replace(/_/g, ' ')}</p>
-            {alerta.area && (
-              <p className="text-sm text-foreground-secondary">Área: {alerta.area.nombre}</p>
-            )}
-            {alerta.asignacion && (
-              <p className="text-xs text-foreground-secondary">Tarjeta: {alerta.asignacion.tarjeta_tld.codigo}</p>
-            )}
-          </div>
-        ))}
+        {activas.map((alerta) => {
+          const rango = alerta.fecha_inicio && alerta.fecha_fin
+            ? `${new Date(alerta.fecha_inicio).getFullYear()} - ${new Date(alerta.fecha_fin).getFullYear()}`
+            : '';
+          return (
+            <div
+              key={alerta.id}
+              className="bg-background rounded-xl border border-border p-4"
+            >
+              <p className="font-medium text-foreground">Dosis período {rango}</p>
+              {alerta.dosis != null && (
+                <p className="text-sm text-danger">
+                  {formatDosis(alerta.dosis, aproximar)} mSv
+                  {alerta.umbral != null && (
+                    <span className="text-foreground-secondary"> / {formatDosis(alerta.umbral, aproximar)} mSv</span>
+                  )}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

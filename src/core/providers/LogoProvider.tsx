@@ -8,6 +8,7 @@ interface LogoContextType {
 const LogoContext = createContext<LogoContextType | undefined>(undefined);
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const FALLBACK_LOGO = '/logoweb_UTA.png';
 
 export function LogoProvider({ children }: { children: ReactNode }) {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -27,6 +28,13 @@ export function LogoProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Evitar múltiples cargas
     if (hasLoaded) return;
+
+    const useFallback = () => {
+      setLogoUrl(FALLBACK_LOGO);
+      setIsLoading(false);
+      setHasLoaded(true);
+      hideInitialLoading();
+    };
 
     const fetchLogo = async () => {
       try {
@@ -53,6 +61,10 @@ export function LogoProvider({ children }: { children: ReactNode }) {
 
             // Convertir URL relativa a absoluta
             const relativeUrl = data.logo_url || data.logoUrl;
+            if (!relativeUrl) {
+              useFallback();
+              return;
+            }
             finalUrl = relativeUrl.startsWith('http')
               ? relativeUrl
               : `${API_BASE_URL}${relativeUrl}`;
@@ -68,22 +80,16 @@ export function LogoProvider({ children }: { children: ReactNode }) {
           };
           img.onerror = () => {
             console.error('LogoProvider: Image failed to load');
-            setIsLoading(false);
-            setHasLoaded(true);
-            hideInitialLoading();
+            useFallback();
           };
           img.src = finalUrl;
         } else {
           console.error('LogoProvider: Response not ok:', response.status);
-          setIsLoading(false);
-          setHasLoaded(true);
-          hideInitialLoading();
+          useFallback();
         }
       } catch (error) {
         console.error('LogoProvider: Error fetching logo:', error);
-        setIsLoading(false);
-        setHasLoaded(true);
-        hideInitialLoading();
+        useFallback();
       }
     };
 

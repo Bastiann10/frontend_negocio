@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { ImageOff } from 'lucide-react';
 
 interface SmartImageProps {
   src: string;
@@ -7,6 +8,7 @@ interface SmartImageProps {
   imgClassName?: string;
   fallbackClassName?: string;
   fallbackColor?: string;
+  fallback?: ReactNode;
 }
 
 /**
@@ -21,11 +23,14 @@ export default function SmartImage({
   className = '',
   imgClassName = '',
   fallbackColor,
+  fallback,
 }: SmartImageProps) {
   const [bgColor, setBgColor] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    setHasError(!src);
     if (!src) return;
 
     const img = new Image();
@@ -90,11 +95,16 @@ export default function SmartImage({
         className={className}
         style={background ? { backgroundColor: background } : undefined}
       >
-        <img
-          src={src}
-          alt={alt}
-          className={imgClassName}
-        />
+        {hasError ? (
+          fallback ?? <ImageOff className="w-1/2 h-1/2 text-foreground-secondary" />
+        ) : (
+          <img
+            src={src}
+            alt={alt}
+            className={imgClassName}
+            onError={() => setHasError(true)}
+          />
+        )}
       </div>
     </>
   );

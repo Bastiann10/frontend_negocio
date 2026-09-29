@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router";
-import { LogOut } from "lucide-react";
+import { Building2, LogOut, Sun, Moon } from "lucide-react";
 import { useLogo } from "../providers/LogoProvider";
 import { PerfilProvider, usePerfil } from "../providers/PerfilProvider";
+import { useTheme } from "../providers/ThemeProvider";
+import { usePrecision } from "../providers/PrecisionProvider";
 import { logout } from "../../features/auth/services/auth.ts";
 import AuthErrorModal from "./AuthErrorModal";
 import SmartImage from "./SmartImage";
@@ -18,8 +21,15 @@ export default function DashboardLayout() {
 function DashboardLayoutContent() {
   const { perfil } = usePerfil();
   const fotoUrl = perfil?.foto_url ?? null;
+  const [fotoError, setFotoError] = useState(false);
   const { logoUrl } = useLogo();
+  const { theme, setTheme } = useTheme();
+  const { aproximar, toggleAproximar } = usePrecision();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setFotoError(false);
+  }, [fotoUrl]);
 
   const sessionData = localStorage.getItem('dosimetria_session');
   const userData = sessionData ? JSON.parse(sessionData) : null;
@@ -55,6 +65,7 @@ function DashboardLayoutContent() {
             alt="Logo"
             className="w-8 h-8 bg-foreground/10 rounded-lg flex items-center justify-center shrink-0 p-1.5 dark:bg-background"
             imgClassName="w-full h-full object-contain"
+            fallback={<Building2 size={16} className="text-background dark:text-foreground" />}
           />
           <span className="font-semibold text-background dark:text-foreground truncate hidden min-[400px]:inline">
             Sistema de Dosimetría
@@ -63,11 +74,12 @@ function DashboardLayoutContent() {
           {/* Datos del usuario logueado */}
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              {fotoUrl ? (
+              {fotoUrl && !fotoError ? (
                 <img
                   src={fotoUrl.startsWith('http') ? fotoUrl : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}${fotoUrl}`}
                   alt={fullName}
                   className="w-8 h-8 rounded-lg object-cover shrink-0"
+                  onError={() => setFotoError(true)}
                 />
               ) : (
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shrink-0">
@@ -79,6 +91,20 @@ function DashboardLayoutContent() {
               </span>
             </div>
             <AlertasDropdown />
+            <button
+              onClick={toggleAproximar}
+              className="px-2 py-1.5 rounded-lg shrink-0 cursor-pointer transition-colors duration-100 ease-out text-xs font-semibold border text-background dark:text-foreground border-background/40 hover:bg-sidebar-hover"
+              title={aproximar ? 'Mostrar valores exactos' : 'Aproximar a 5 decimales'}
+            >
+              {aproximar ? 'Modo: Aproximado' : 'Modo: Exacto'}
+            </button>
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="p-2 rounded-lg shrink-0 cursor-pointer transition-colors duration-100 ease-out text-background dark:text-foreground hover:bg-sidebar-hover"
+              title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             <button
               onClick={handleLogout}
               className="p-2 rounded-lg shrink-0 cursor-pointer transition-colors duration-100 ease-out text-background dark:text-foreground hover:bg-sidebar-hover"

@@ -48,15 +48,15 @@ export interface DosisTrimestre {
 
 export interface DosisAnual {
   id: number;
-  id_dosis_periodo: number;
-  creado_por: number;
-  id_area_pe: number;
+  id_dosis_periodo?: number;
+  creado_por?: number;
+  id_area_pe?: number;
   anio: number;
   dosis_total: number;
-  estado_noti: number;
-  estado: number;
-  createdAt: string;
-  updatedAt: string;
+  estado_noti?: number;
+  estado?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ConfiguracionUmbral {
@@ -101,6 +101,24 @@ export interface AreaPe {
   };
 }
 
+export interface DosisTrimestreCal {
+  id?: number;
+  dosis: number;
+  estado?: number;
+}
+
+export interface DosisTrimestrePe {
+  id?: number;
+  dosis_acumulada: number;
+  estado?: number;
+  estado_noti?: number;
+  id_trimestre?: number;
+  id_dosis_anual_cal_pe?: number;
+  creado_por?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Asignacion {
   id: number;
   id_tarjeta_tld: number | null;
@@ -116,11 +134,19 @@ export interface Asignacion {
   fecha_recepcion_devolucion: string | null;
   fecha_vinculacion_tld: string | null;
   fecha_desvinculacion_tld: string | null;
+  fecha_inicio_uso_tld?: string | null;
   tarjeta_tld: TarjetaTld | null;
   trimestre: Trimestre;
   area_pe: AreaPe;
   dosis_trimestre?: DosisTrimestre | null;
+  dosis_trimestre_cal?: DosisTrimestreCal | null;
+  dosis_trimestre_pe?: DosisTrimestrePe | null;
+  id_dosis_periodo?: number | null;
   tiene_lectura?: boolean;
+  tiene_lectura_vigente?: boolean;
+  lectura_finalizada?: boolean;
+  es_ultimo_trimestre_periodo?: boolean;
+  periodo_estado?: number;
   es_actual?: boolean;
 }
 
@@ -156,10 +182,21 @@ export const getAsignaciones = async (): Promise<AsignacionesResponse> => {
   return data;
 };
 
-export const getAsignacionesByAreaPe = async (idAreaPe: number, anio?: number): Promise<AsignacionesResponse> => {
+export const getAsignacionesByAreaPe = async (
+  idAreaPe: number,
+  anio?: number,
+  idDosisPeriodo?: number,
+  sinPeriodo?: boolean,
+): Promise<AsignacionesResponse> => {
   const params = new URLSearchParams();
   if (anio) {
     params.set('anio', String(anio));
+  }
+  if (idDosisPeriodo) {
+    params.set('id_dosis_periodo', String(idDosisPeriodo));
+  }
+  if (sinPeriodo) {
+    params.set('sin_periodo', 'true');
   }
   const query = params.toString() ? `?${params.toString()}` : '';
   const response = await fetchWithAuth(`${API_BASE_URL}/portal/asignaciones/${idAreaPe}${query}`, {

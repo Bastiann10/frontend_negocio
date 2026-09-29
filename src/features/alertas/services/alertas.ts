@@ -3,8 +3,8 @@ import { fetchWithAuth } from '../../../core/utils/fetchInterceptor.ts';
 
 export interface AlertaDosisTrimestre {
   id: number;
-  trimestre: string;
-  anio: number;
+  trimestre?: string;
+  anio?: number;
   dosis?: number;
   umbral?: number;
   estado: number;
@@ -13,11 +13,12 @@ export interface AlertaDosisTrimestre {
 
 export interface AlertaDosisAnual {
   id: number;
-  anio: number;
+  anio?: number;
   dosis?: number;
   umbral?: number;
   estado: number;
   estado_noti: number;
+  dosis_trimestre_pe?: AlertaDosisTrimestre[];
   dosis_trimestre?: AlertaDosisTrimestre[];
 }
 
@@ -27,19 +28,15 @@ export interface AlertaDosisPeriodo {
   umbral?: number;
   estado: number;
   estado_noti: number;
+  estado_periodo?: number;
   fecha_inicio?: string;
   fecha_fin?: string;
+  entidad?: string;
+  dosis_anual_pe?: AlertaDosisAnual[];
   dosis_anual?: AlertaDosisAnual[];
 }
 
-export interface AlertaEntidad {
-  entidad: string;
-  dosis_trimestre?: AlertaDosisTrimestre[];
-  dosis_anual?: AlertaDosisAnual[];
-  dosis_periodo?: AlertaDosisPeriodo[] | AlertaDosisPeriodo | null;
-}
-
-export const getAlertasDosis = async (): Promise<AlertaEntidad[]> => {
+export const getAlertasDosis = async (): Promise<AlertaDosisPeriodo[]> => {
   const response = await fetchWithAuth(`${API_BASE_URL}/portal/alertas/dosis`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },

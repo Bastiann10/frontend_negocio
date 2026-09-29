@@ -123,7 +123,12 @@ export interface PeriodoAnios {
   anios: number[];
 }
 
-export const getAniosByAreaPe = async (idAreaPe: number): Promise<PeriodoAnios[]> => {
+export interface AniosByAreaPeResponse {
+  periodos: PeriodoAnios[];
+  anios_sin_periodo: number[];
+}
+
+export const getAniosByAreaPe = async (idAreaPe: number): Promise<AniosByAreaPeResponse> => {
   const response = await fetchWithAuth(`${API_BASE_URL}/portal/areas/anios-by-area-pe/${idAreaPe}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
@@ -136,21 +141,34 @@ export const getAniosByAreaPe = async (idAreaPe: number): Promise<PeriodoAnios[]
     throw new Error(data.message || 'Error al obtener años del área');
   }
 
-  if (Array.isArray(data.periodos)) {
-    return data.periodos.map((p: any) => ({
-      id: p.id,
-      anio_inicio: p.anio_inicio,
-      anio_fin: p.anio_fin,
-      anios: Array.isArray(p.anios) ? [...p.anios].sort((a: number, b: number) => b - a) : [],
-    }));
+  const periodos: PeriodoAnios[] = Array.isArray(data.periodos)
+    ? data.periodos.map((p: any) => ({
+        id: p.id,
+        anio_inicio: p.anio_inicio,
+        anio_fin: p.anio_fin,
+        anios: Array.isArray(p.anios) ? [...p.anios].sort((a: number, b: number) => b - a) : [],
+      }))
+    : [];
+
+  const anios_sin_periodo: number[] = Array.isArray(data.anios_sin_periodo)
+    ? [...data.anios_sin_periodo].sort((a: number, b: number) => b - a)
+    : [];
+
+  // Fallback: si la API vieja devolvió un array plano o { anios: [...] }
+  if (periodos.length === 0 && anios_sin_periodo.length === 0) {
+    const anios: number[] = Array.isArray(data) ? data : Array.isArray(data.anios) ? data.anios : [];
+    if (anios.length > 0) {
+      return {
+        periodos: [{
+          id: 0,
+          anio_inicio: Math.min(...anios),
+          anio_fin: Math.max(...anios),
+          anios: [...anios].sort((a, b) => b - a),
+        }],
+        anios_sin_periodo: [],
+      };
+    }
   }
 
-  const anios: number[] = Array.isArray(data) ? data : Array.isArray(data.anios) ? data.anios : [];
-  if (anios.length === 0) return [];
-  return [{
-    id: 0,
-    anio_inicio: Math.min(...anios),
-    anio_fin: Math.max(...anios),
-    anios: [...anios].sort((a, b) => b - a),
-  }];
+  return { periodos, anios_sin_periodo };
 };

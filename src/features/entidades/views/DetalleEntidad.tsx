@@ -191,6 +191,7 @@ export default function DetalleEntidadPage({ embedded = false, entidadIdProp, on
                     alt={`Logo ${entidadData.nombre}`}
                     className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0 p-1.5"
                     imgClassName="w-full h-full object-contain"
+                    fallback={<Building2 size={28} className="text-foreground" />}
                   />
                 ) : (
                   <div className="w-14 h-14 bg-foreground/10 rounded-lg flex items-center justify-center shrink-0 p-1.5">

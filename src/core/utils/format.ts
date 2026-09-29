@@ -234,6 +234,19 @@ export function getAccentForDark(hex: string): string {
 }
 
 /**
+ * Formatea un valor de dosis (mSv)
+ * @param valor - Valor numérico de dosis
+ * @param aproximar - Si true, redondea a 5 decimales; si false, muestra el valor exacto
+ * @returns Dosis formateada o '—' si es null/undefined
+ */
+export function formatDosis(valor: number | null | undefined, aproximar: boolean): string {
+  if (valor == null) return '—';
+  return valor.toLocaleString('es-CL', {
+    maximumFractionDigits: aproximar ? 5 : 20,
+  });
+}
+
+/**
  * Formatea una fecha con hora en formato chileno (24h, mes abreviado)
  * @param date - Fecha como string ISO o Date
  * @returns Fecha formateada (ej: "02 sept. 2026, 16:30") o '—' si es null/undefined

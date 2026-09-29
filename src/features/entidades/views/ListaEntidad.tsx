@@ -36,6 +36,7 @@ export default function ListaEntidadPage() {
   const [errorAsignaciones, setErrorAsignaciones] = useState<string | null>(null);
   const [selectedAsignacionId, setSelectedAsignacionId] = useState<number | null>(null);
   const [selectedAnio, setSelectedAnio] = useState<number | null>(null);
+  const [selectedIdDosisPeriodo, setSelectedIdDosisPeriodo] = useState<number | null>(null);
 
   // Carga inicial de entidades
   useEffect(() => {
@@ -75,6 +76,7 @@ export default function ListaEntidadPage() {
     setErrorPe(null);
     setSearchAreas('');
     setSelectedAnio(null);
+    setSelectedIdDosisPeriodo(null);
   }, [selectedEntidadId]);
 
   // Carga de áreas
@@ -141,7 +143,7 @@ export default function ListaEntidadPage() {
   }, [selectedAreaId, selectedEntidadId]);
 
   // Carga de asignaciones — optimista con el año actual mientras llega la lista de años
-  const asignacionesReq = useRef<{ areaPeId: number; anio: number } | null>(null);
+  const asignacionesReq = useRef<{ areaPeId: number; anio: number; idDosisPeriodo: number | null } | null>(null);
   useEffect(() => {
     if (!areaPe?.id) {
       asignacionesReq.current = null;
@@ -153,13 +155,14 @@ export default function ListaEntidadPage() {
       return;
     }
     const anio = selectedAnio ?? new Date().getFullYear();
-    if (asignacionesReq.current?.areaPeId === areaPe.id && asignacionesReq.current.anio === anio) return;
-    asignacionesReq.current = { areaPeId: areaPe.id, anio };
+    const idDosisPeriodo = selectedIdDosisPeriodo;
+    if (asignacionesReq.current?.areaPeId === areaPe.id && asignacionesReq.current.anio === anio && asignacionesReq.current.idDosisPeriodo === idDosisPeriodo) return;
+    asignacionesReq.current = { areaPeId: areaPe.id, anio, idDosisPeriodo };
     setLoadingAsignaciones(true);
     setErrorAsignaciones(null);
-    getAsignacionesByAreaPe(areaPe.id, anio)
+    getAsignacionesByAreaPe(areaPe.id, anio, idDosisPeriodo ?? undefined, idDosisPeriodo === null)
       .then((data) => {
-        if (asignacionesReq.current?.areaPeId !== areaPe.id || asignacionesReq.current.anio !== anio) return;
+        if (asignacionesReq.current?.areaPeId !== areaPe.id || asignacionesReq.current.anio !== anio || asignacionesReq.current.idDosisPeriodo !== idDosisPeriodo) return;
         setAsignaciones(data.asignaciones);
         setDosisAnuales(data.dosis_anuales ?? []);
         setDosisPeriodo(data.dosis_periodo ?? null);
@@ -167,13 +170,13 @@ export default function ListaEntidadPage() {
         setSelectedAsignacionId(actual ? actual.id : null);
       })
       .catch((err: any) => {
-        if (asignacionesReq.current?.anio !== anio) return;
+        if (asignacionesReq.current?.anio !== anio || asignacionesReq.current.idDosisPeriodo !== idDosisPeriodo) return;
         setErrorAsignaciones(err.message || 'Error al cargar asignaciones');
       })
       .finally(() => {
-        if (asignacionesReq.current?.anio === anio) setLoadingAsignaciones(false);
+        if (asignacionesReq.current?.anio === anio && asignacionesReq.current.idDosisPeriodo === idDosisPeriodo) setLoadingAsignaciones(false);
       });
-  }, [areaPe?.id, selectedAnio]);
+  }, [areaPe?.id, selectedAnio, selectedIdDosisPeriodo]);
 
   return (
     <div className="bg-background">
@@ -223,6 +226,8 @@ export default function ListaEntidadPage() {
           onSelectAsignacion={setSelectedAsignacionId}
           selectedAnio={selectedAnio}
           onSelectAnio={setSelectedAnio}
+          selectedIdDosisPeriodo={selectedIdDosisPeriodo}
+          onSelectIdDosisPeriodo={setSelectedIdDosisPeriodo}
         />
       </div>
     </div>

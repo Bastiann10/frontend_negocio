@@ -8,6 +8,7 @@ import { getAsignacionesByAreaPe, type Asignacion, type DosisAnual, type DosisPe
 import { formatChileanRut } from '../../../core/utils/format';
 import { EntidadDropdown, AreasAccordion } from '../../entidades/components/EntidadAreaSelector';
 import AreaDetalle, { PersonalMetricCards } from '../../entidades/components/AreaDetalle';
+import DosisPeriodos from '../../dosis/components/DosisPeriodos';
 import EditarPerfilModal from '../components/EditarPerfilModal';
 import Loading from '../../../core/components/Loading';
 
@@ -16,7 +17,12 @@ export default function PerfilPage() {
   const { perfil, resumen, error: errorPerfil, refetch: refetchPerfil } = usePerfil();
   const [menuOpen, setMenuOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [fotoError, setFotoError] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setFotoError(false);
+  }, [perfil?.foto_url]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -58,6 +64,7 @@ export default function PerfilPage() {
   const [errorAsignaciones, setErrorAsignaciones] = useState<string | null>(null);
   const [selectedAsignacionId, setSelectedAsignacionId] = useState<number | null>(null);
   const [selectedAnio, setSelectedAnio] = useState<number | null>(null);
+  const [selectedIdDosisPeriodo, setSelectedIdDosisPeriodo] = useState<number | null>(null);
 
   // Carga inicial de entidades
   useEffect(() => {
@@ -96,6 +103,7 @@ export default function PerfilPage() {
     setErrorPe(null);
     setSearchAreas('');
     setSelectedAnio(null);
+    setSelectedIdDosisPeriodo(null);
   }, [selectedEntidadId]);
 
   // Carga de áreas
@@ -161,7 +169,7 @@ export default function PerfilPage() {
   }, [selectedAreaId, selectedEntidadId]);
 
   // Carga de asignaciones — optimista con el año actual mientras llega la lista de años
-  const asignacionesReq = useRef<{ areaPeId: number; anio: number } | null>(null);
+  const asignacionesReq = useRef<{ areaPeId: number; anio: number; idDosisPeriodo: number | null } | null>(null);
   useEffect(() => {
     if (!areaPe?.id) {
       asignacionesReq.current = null;
@@ -173,13 +181,14 @@ export default function PerfilPage() {
       return;
     }
     const anio = selectedAnio ?? new Date().getFullYear();
-    if (asignacionesReq.current?.areaPeId === areaPe.id && asignacionesReq.current.anio === anio) return;
-    asignacionesReq.current = { areaPeId: areaPe.id, anio };
+    const idDosisPeriodo = selectedIdDosisPeriodo;
+    if (asignacionesReq.current?.areaPeId === areaPe.id && asignacionesReq.current.anio === anio && asignacionesReq.current.idDosisPeriodo === idDosisPeriodo) return;
+    asignacionesReq.current = { areaPeId: areaPe.id, anio, idDosisPeriodo };
     setLoadingAsignaciones(true);
     setErrorAsignaciones(null);
-    getAsignacionesByAreaPe(areaPe.id, anio)
+    getAsignacionesByAreaPe(areaPe.id, anio, idDosisPeriodo ?? undefined, idDosisPeriodo === null)
       .then((data) => {
-        if (asignacionesReq.current?.areaPeId !== areaPe.id || asignacionesReq.current.anio !== anio) return;
+        if (asignacionesReq.current?.areaPeId !== areaPe.id || asignacionesReq.current.anio !== anio || asignacionesReq.current.idDosisPeriodo !== idDosisPeriodo) return;
         setAsignaciones(data.asignaciones);
         setDosisAnuales(data.dosis_anuales ?? []);
         setDosisPeriodo(data.dosis_periodo ?? null);
@@ -187,13 +196,13 @@ export default function PerfilPage() {
         setSelectedAsignacionId(actual ? actual.id : null);
       })
       .catch((err: any) => {
-        if (asignacionesReq.current?.anio !== anio) return;
+        if (asignacionesReq.current?.anio !== anio || asignacionesReq.current.idDosisPeriodo !== idDosisPeriodo) return;
         setErrorAsignaciones(err.message || 'Error al cargar asignaciones');
       })
       .finally(() => {
-        if (asignacionesReq.current?.anio === anio) setLoadingAsignaciones(false);
+        if (asignacionesReq.current?.anio === anio && asignacionesReq.current.idDosisPeriodo === idDosisPeriodo) setLoadingAsignaciones(false);
       });
-  }, [areaPe?.id, selectedAnio]);
+  }, [areaPe?.id, selectedAnio, selectedIdDosisPeriodo]);
 
   const handleSavePerfil = async (payload: UpdatePerfilPayload): Promise<string> => {
     const res = await updatePerfil(payload);
@@ -211,14 +220,15 @@ export default function PerfilPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,1.4fr)] gap-4 lg:gap-6 items-stretch">
         {/* Card 1: Perfil */}
         {perfil ? (
-          <div className="rounded-2xl border border-border bg-linear-to-b from-background-secondary/50 to-background-secondary p-5">
+          <div className="order-1 rounded-2xl border border-border bg-linear-to-b from-background-secondary/50 to-background-secondary p-5">
             <div className="flex items-start gap-4">
               <div className="flex items-center gap-4 min-w-0">
-                {perfil.foto_url ? (
+                {perfil.foto_url && !fotoError ? (
                   <img
                     src={perfil.foto_url.startsWith('http') ? perfil.foto_url : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}${perfil.foto_url}`}
                     alt={perfil.nombre}
                     className="w-14 h-14 rounded-xl object-cover shrink-0 ring-1 ring-border max-[500px]:hidden"
+                    onError={() => setFotoError(true)}
                   />
                 ) : (
                   <div className="w-14 h-14 rounded-xl bg-linear-to-br from-foreground/10 to-foreground/20 flex items-center justify-center shrink-0 ring-1 ring-border max-[500px]:hidden">
@@ -296,19 +306,17 @@ export default function PerfilPage() {
                 <span className="text-foreground-secondary uppercase font-medium">Entidades: <strong className="text-foreground">{resumen.entidades}</strong></span>
                 <span className="text-border">|</span>
                 <span className="text-foreground-secondary uppercase font-medium">Áreas: <strong className="text-foreground">{resumen.areas}</strong></span>
-                <span className="text-border">|</span>
-                <span className="text-foreground-secondary uppercase font-medium">Trim. ({resumen.anio}): <strong className="text-foreground">{resumen.trimestres_iniciados}</strong></span>
               </div>
             )}
           </div>
         ) : (
-          <div className="rounded-2xl border border-border bg-linear-to-b from-background-secondary/50 to-background-secondary p-5">
+          <div className="order-1 rounded-2xl border border-border bg-linear-to-b from-background-secondary/50 to-background-secondary p-5">
             <Loading text="Cargando perfil..." size="sm" />
           </div>
         )}
 
         {/* Card 2: Entidad */}
-        <div className="rounded-2xl border border-border bg-background-secondary p-5 h-full">
+        <div className="order-3 lg:order-2 rounded-2xl border border-border bg-background-secondary p-5 h-full">
           <EntidadDropdown
             entidades={entidades}
             loading={loadingEntidades}
@@ -321,7 +329,7 @@ export default function PerfilPage() {
         </div>
 
         {/* Card 3: Área */}
-        <div className="rounded-2xl border border-border bg-background-secondary p-5 h-full flex flex-col gap-3">
+        <div className="order-4 lg:order-3 rounded-2xl border border-border bg-background-secondary p-5 h-full flex flex-col gap-3">
           <AreasAccordion
             areas={areas}
             loading={loadingAreas}
@@ -346,6 +354,11 @@ export default function PerfilPage() {
             />
           )}
         </div>
+
+        {/* Dosis: en móvil va debajo del perfil (order-2), en desktop abajo ocupando todo */}
+        <div className="order-2 lg:order-4 lg:col-span-full">
+          <DosisPeriodos />
+        </div>
       </div>
 
       {/* Detalle abajo */}
@@ -366,6 +379,8 @@ export default function PerfilPage() {
         onSelectAsignacion={setSelectedAsignacionId}
         selectedAnio={selectedAnio}
         onSelectAnio={setSelectedAnio}
+        selectedIdDosisPeriodo={selectedIdDosisPeriodo}
+        onSelectIdDosisPeriodo={setSelectedIdDosisPeriodo}
       />
 
       {/* Modal de edición */}

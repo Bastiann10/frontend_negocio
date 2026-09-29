@@ -178,6 +178,7 @@ export function EntidadDropdown({
                       alt={`Logo ${selectedEntidad.nombre}`}
                       className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 p-1 bg-white/60 dark:bg-black/20"
                       imgClassName="w-full h-full object-contain"
+                      fallback={<Building2 size={16} className="text-foreground-secondary" />}
                     />
                   ) : (
                     <AccentIconChip
@@ -267,6 +268,7 @@ export function EntidadDropdown({
                             alt={`Logo ${entidad.nombre}`}
                             className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 p-1 bg-white/60 dark:bg-black/20"
                             imgClassName="w-full h-full object-contain"
+                            fallback={<Building2 size={14} className="text-foreground-secondary" />}
                           />
                         ) : (
                           <AccentIconChip

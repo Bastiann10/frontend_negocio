@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router';
-import { Home, LogOut, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Building2, Home, LogOut, Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useTheme } from '../providers/ThemeProvider';
 import { useLogo } from '../providers/LogoProvider';
 import { logout } from '../../features/auth/services/auth.ts';
@@ -65,6 +65,7 @@ export default function Sidebar({ isOpen = false, onClose, isCollapsed = false, 
                 alt="Logo"
                 className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 p-1.5 dark:bg-background"
                 imgClassName="w-full h-full object-contain"
+                fallback={<Building2 size={20} className="text-foreground" />}
               />
             )}
             {!isCollapsed && (
