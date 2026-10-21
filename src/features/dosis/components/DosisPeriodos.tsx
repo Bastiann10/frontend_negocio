@@ -20,7 +20,7 @@ export default function DosisPeriodos() {
   const [periodos, setPeriodos] = useState<DosisPeriodo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [periodoAbierto, setPeriodoAbierto] = useState<number | null>(null);
   const [anioAbierto, setAnioAbierto] = useState<number | null>(null);
 
@@ -40,7 +40,7 @@ export default function DosisPeriodos() {
   }, []);
 
   return (
-    <div className="rounded-2xl border border-border bg-background-secondary overflow-hidden">
+    <div className="rounded-2xl border border-border bg-background shadow-sm overflow-hidden">
       {/* Header general */}
       <button
         onClick={() => setOpen((o) => !o)}
@@ -122,7 +122,7 @@ function PeriodoItem({
   const nivPeriodo = nivel(periodo.dosis_total, config.umbral_periodo);
 
   return (
-    <div className="rounded-xl border border-border bg-background overflow-hidden">
+    <div className="rounded-xl border border-border bg-background-secondary overflow-hidden">
       {/* Fila período */}
       <button
         onClick={onToggle}

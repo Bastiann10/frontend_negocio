@@ -236,13 +236,13 @@ export function getAccentForDark(hex: string): string {
 /**
  * Formatea un valor de dosis (mSv)
  * @param valor - Valor numérico de dosis
- * @param aproximar - Si true, redondea a 5 decimales; si false, muestra el valor exacto
+ * @param aproximar - Si true, redondea a 2 decimales; si false, muestra el valor exacto
  * @returns Dosis formateada o '—' si es null/undefined
  */
 export function formatDosis(valor: number | null | undefined, aproximar: boolean): string {
   if (valor == null) return '—';
   return valor.toLocaleString('es-CL', {
-    maximumFractionDigits: aproximar ? 5 : 20,
+    maximumFractionDigits: aproximar ? 2 : 20,
   });
 }
 

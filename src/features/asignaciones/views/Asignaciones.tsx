@@ -34,12 +34,12 @@ export default function AsignacionesPage() {
   }
 
   if (asignaciones.length === 0) {
-    return <p className="text-foreground-secondary">Sin asignaciones pendientes.</p>;
+    return <p className="text-foreground-secondary">Sin trimestres pendientes.</p>;
   }
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-foreground">Asignaciones</h1>
+      <h1 className="text-2xl font-bold text-foreground">Trimestres</h1>
       <div className="grid gap-4">
         {asignaciones.map((asignacion) => (
           <div
@@ -47,7 +47,7 @@ export default function AsignacionesPage() {
             className="bg-background rounded-xl border border-border p-4 flex items-center justify-between"
           >
             <div>
-              <p className="font-medium text-foreground">Asignación #{asignacion.id}</p>
+              <p className="font-medium text-foreground">Trimestre #{asignacion.id}</p>
               {asignacion.area_pe && (
                 <p className="text-sm text-foreground-secondary">{asignacion.area_pe.area.nombre}</p>
               )}

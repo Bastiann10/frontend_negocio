@@ -15,14 +15,6 @@ export interface TrimestreInfo {
   anio: number;
 }
 
-export interface DosisTrimestreCal {
-  id: number;
-  id_trimestre: number;
-  dosis_acumulada: number;
-  estado: number;
-  estado_noti: number;
-}
-
 export interface DosisTrimestrePe {
   id: number;
   id_dosis_anual_pe: number;
@@ -34,15 +26,6 @@ export interface DosisTrimestrePe {
   updatedAt: string;
   creado_por: number;
   trimestre: TrimestreInfo;
-  dosis_trimestre_cal: DosisTrimestreCal | null;
-}
-
-export interface DosisAnualCal {
-  id: number;
-  anio: number;
-  dosis_acumulada: number;
-  estado: number;
-  estado_noti: number;
 }
 
 export interface DosisAnualPe {
@@ -56,7 +39,6 @@ export interface DosisAnualPe {
   updatedAt: string;
   creado_por: number;
   dosis_trimestre_pe: DosisTrimestrePe[];
-  dosis_anual_cal: DosisAnualCal | null;
 }
 
 export interface DosisPeriodo {

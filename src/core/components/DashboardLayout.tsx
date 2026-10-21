@@ -59,15 +59,15 @@ function DashboardLayoutContent() {
       /> */}
 
       <main className="flex-1 min-w-0 transition-all duration-300 ml-0">
-        <nav className="flex p-3 sm:p-4 bg-sidebar dark:bg-background-secondary border-b border-border items-center gap-3 sm:gap-4 fixed top-0 left-0 right-0 z-40">
+        <nav className="flex p-3 sm:p-4 bg-background dark:bg-background-secondary border-b border-border items-center gap-3 sm:gap-4 fixed top-0 left-0 right-0 z-40">
           <SmartImage
             src={logoUrl || ''}
             alt="Logo"
-            className="w-8 h-8 bg-foreground/10 rounded-lg flex items-center justify-center shrink-0 p-1.5 dark:bg-background"
+            className="w-8 h-8 bg-foreground/10 rounded-lg flex items-center justify-center shrink-0 p-1.5"
             imgClassName="w-full h-full object-contain"
-            fallback={<Building2 size={16} className="text-background dark:text-foreground" />}
+            fallback={<Building2 size={16} className="text-foreground" />}
           />
-          <span className="font-semibold text-background dark:text-foreground truncate hidden min-[400px]:inline">
+          <span className="font-semibold text-foreground truncate hidden min-[400px]:inline">
             Sistema de Dosimetría
           </span>
 
@@ -83,31 +83,31 @@ function DashboardLayoutContent() {
                 />
               ) : (
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-white dark:text-foreground">{initials}</span>
+                  <span className="text-xs font-bold text-white">{initials}</span>
                 </div>
               )}
-              <span className="text-sm font-medium text-background dark:text-foreground truncate max-w-24 min-[400px]:max-w-32 hidden min-[360px]:inline">
+              <span className="text-sm font-medium text-foreground truncate max-w-24 min-[400px]:max-w-32 hidden min-[360px]:inline">
                 {fullName}
               </span>
             </div>
             <AlertasDropdown />
             <button
               onClick={toggleAproximar}
-              className="px-2 py-1.5 rounded-lg shrink-0 cursor-pointer transition-colors duration-100 ease-out text-xs font-semibold border text-background dark:text-foreground border-background/40 hover:bg-sidebar-hover"
-              title={aproximar ? 'Mostrar valores exactos' : 'Aproximar a 5 decimales'}
+              className="px-2 py-1.5 rounded-lg shrink-0 cursor-pointer transition-colors duration-100 ease-out text-xs font-semibold border text-foreground border-border hover:bg-foreground/5"
+              title={aproximar ? 'Mostrar valores exactos' : 'Aproximar a 2 decimales'}
             >
               {aproximar ? 'Modo: Aproximado' : 'Modo: Exacto'}
             </button>
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-lg shrink-0 cursor-pointer transition-colors duration-100 ease-out text-background dark:text-foreground hover:bg-sidebar-hover"
+              className="p-2 rounded-lg shrink-0 cursor-pointer transition-colors duration-100 ease-out text-foreground hover:bg-foreground/5"
               title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
             >
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
             <button
               onClick={handleLogout}
-              className="p-2 rounded-lg shrink-0 cursor-pointer transition-colors duration-100 ease-out text-background dark:text-foreground hover:bg-sidebar-hover"
+              className="p-2 rounded-lg shrink-0 cursor-pointer transition-colors duration-100 ease-out text-foreground hover:bg-foreground/5"
               title="Cerrar sesión"
             >
               <LogOut size={20} />

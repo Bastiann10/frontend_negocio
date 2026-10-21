@@ -148,7 +148,7 @@ export default function AlertasDropdown() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative p-2 rounded-lg shrink-0 cursor-pointer transition-colors duration-100 ease-out text-background dark:text-foreground hover:bg-sidebar-hover"
+        className="relative p-2 rounded-lg shrink-0 cursor-pointer transition-colors duration-100 ease-out text-foreground hover:bg-foreground/5"
         title="Alertas de dosis"
       >
         <Bell size={20} />

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router';
 import { login } from '../services/auth.ts';
 import { useLoginForm } from '../hook/useAuthForm.ts';
 import { useLogo } from '../../../core/providers/LogoProvider.tsx';
-import { Building2, Eye, EyeOff } from 'lucide-react';
+import { useTheme } from '../../../core/providers/ThemeProvider.tsx';
+import { Building2, Eye, EyeOff, Sun, Moon } from 'lucide-react';
 import SmartImage from '../../../core/components/SmartImage.tsx';
 import { cleanChileanRut, formatRutOnChange } from '../../../core/utils/format.ts';
 import RecuperarClaveModal from '../components/RecuperarClaveModal.tsx';
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [recuperarOpen, setRecuperarOpen] = useState(false);
   const navigate = useNavigate();
   const { logoUrl } = useLogo();
+  const { actualTheme, setTheme } = useTheme();
 
   const {
     register,
@@ -51,7 +53,15 @@ export default function LoginPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background-secondary">
       <div className="w-full max-w-md p-6">
-        <div className="bg-background rounded-xl p-8 border border-border">
+        <div className="relative bg-background rounded-xl p-8 border border-border">
+          <button
+            type="button"
+            onClick={() => setTheme(actualTheme === 'dark' ? 'light' : 'dark')}
+            className="absolute top-4 right-4 p-2 rounded-lg text-foreground hover:bg-foreground/10 cursor-pointer transition-colors"
+            title={actualTheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          >
+            {actualTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
           <div className="text-center mb-8">
             {logoUrl && (
               <SmartImage

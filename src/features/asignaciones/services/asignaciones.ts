@@ -101,19 +101,13 @@ export interface AreaPe {
   };
 }
 
-export interface DosisTrimestreCal {
-  id?: number;
-  dosis: number;
-  estado?: number;
-}
-
 export interface DosisTrimestrePe {
   id?: number;
   dosis_acumulada: number;
   estado?: number;
   estado_noti?: number;
   id_trimestre?: number;
-  id_dosis_anual_cal_pe?: number;
+  id_dosis_anual_pe?: number;
   creado_por?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -139,7 +133,6 @@ export interface Asignacion {
   trimestre: Trimestre;
   area_pe: AreaPe;
   dosis_trimestre?: DosisTrimestre | null;
-  dosis_trimestre_cal?: DosisTrimestreCal | null;
   dosis_trimestre_pe?: DosisTrimestrePe | null;
   id_dosis_periodo?: number | null;
   tiene_lectura?: boolean;

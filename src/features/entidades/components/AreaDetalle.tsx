@@ -191,7 +191,7 @@ function AnioSelector({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-background-secondary p-4 flex flex-col gap-4">
+    <div className="rounded-xl border border-border bg-background shadow-sm p-4 flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm text-foreground-secondary">
           Escoge el año para mostrar sus trimestres
@@ -201,7 +201,7 @@ function AnioSelector({
             type="button"
             onClick={toggleOpen}
             disabled={loading || !!error || !hayAnios}
-            className="w-full sm:w-auto flex items-center justify-between gap-2 px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto flex items-center justify-between gap-2 px-3 py-2 text-sm rounded-lg border border-border bg-background-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring focus:border-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span>{loading ? 'Cargando...' : error ? 'Error' : selectedAnio ?? 'Sin años'}</span>
             <ChevronDown size={14} className={`text-foreground-secondary transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
@@ -286,7 +286,7 @@ function AnioSelector({
         </div>
       )}
 
-      {loadingAsignaciones && <Loading text="Cargando asignaciones" />}
+      {loadingAsignaciones && <Loading text="Cargando trimestres" />}
       {!loadingAsignaciones && errorAsignaciones && (
         <p className="text-danger text-sm text-center py-6">{errorAsignaciones}</p>
       )}
@@ -355,7 +355,7 @@ export function PersonalMetricCards({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-xl border border-border bg-background-secondary p-4 flex flex-col gap-3">
+      <div className="rounded-xl border border-border bg-background shadow-sm p-4 flex flex-col gap-3">
         <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border">
           {cards.map((c) => (
             <div key={c.label} className="flex flex-col gap-2 lg:px-4 py-2 lg:py-0 first:lg:pl-0 last:lg:pr-0">
@@ -420,17 +420,17 @@ function AsignacionesSection({
         />
       )}
 
-      <div className="rounded-2xl border border-border bg-background-secondary p-5">
+      <div className="rounded-2xl border border-border bg-background shadow-sm p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <CreditCard size={14} className="text-foreground-secondary" />
             <h3 className="text-xs font-semibold text-foreground-secondary uppercase tracking-wide">
-              Asignacion TLD
+              Trimestre TLD
             </h3>
           </div>
         </div>
 
-        {loading && <Loading text="Cargando asignaciones" />}
+        {loading && <Loading text="Cargando trimestres" />}
 
         {!loading && error && (
           <p className="text-danger text-sm text-center py-6">{error}</p>
@@ -487,7 +487,7 @@ function DosisComparativaCard({
   const hayAlerta = nivelTrim === 'supera' || nivelAnual === 'supera' || nivelPeriodo === 'supera';
 
   return (
-    <div className={`rounded-2xl border bg-background-secondary p-5 ${hayAlerta ? 'border-danger/40' : 'border-border'}`}>
+    <div className={`rounded-2xl border bg-background shadow-sm p-5 ${hayAlerta ? 'border-danger/40' : 'border-border'}`}>
       {hayAlerta && (
         <div className="inline-flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-danger/15 border border-danger/40 text-red-800 dark:text-red-300 text-sm w-fit">
           <AlertTriangle size={14} />
@@ -561,7 +561,7 @@ function DosisBloque({
       : 'border-foreground/30 animate-[subtle-pulse_1.8s_ease-in-out_infinite]';
 
   return (
-    <div className={`bg-background/70 border-2 rounded-xl px-3.5 py-2 text-center flex flex-col justify-center ${borderClase}`}>
+    <div className={`bg-background-secondary/70 border-2 rounded-xl px-3.5 py-2 text-center flex flex-col justify-center ${borderClase}`}>
       <div className="flex items-center justify-center gap-1.5 flex-wrap">
         <p className="text-xs font-semibold uppercase tracking-wider text-foreground">
           {label}
@@ -633,7 +633,7 @@ function AsignacionesStepper({
                   title={
                     trimestre
                       ? `${trimestre.nombre_trimestre} ${trimestre.anio} · ${getEstadoAsignacionTLD(asignacion.estado).label}`
-                      : `Asignación #${asignacion.id}`
+                      : `Trimestre #${asignacion.id}`
                   }
                 >
                   <span
@@ -828,7 +828,7 @@ function AsignacionDetail({ asignacion }: { asignacion: Asignacion }) {
   ];
 
   return (
-    <div className="rounded-xl border border-border bg-background p-4">
+    <div className="rounded-xl border border-border bg-background-secondary p-4">
       <div className="flex items-center justify-between gap-3 pb-3 border-b border-border">
         <div className="flex items-center gap-3 min-w-0">
           {tarjeta?.color && (

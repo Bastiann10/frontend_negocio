@@ -183,7 +183,7 @@ export default function ListaEntidadPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-foreground">Entidades y Áreas</h1>
         <p className="text-sm text-foreground">
-          Selecciona una entidad y un área para ver el personal y sus asignaciones TLD
+          Selecciona una entidad y un área para ver el personal y sus trimestres TLD
         </p>
       </div>
 

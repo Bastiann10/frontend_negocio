@@ -5,7 +5,7 @@ import { usePerfil } from '../../../core/providers/PerfilProvider';
 import { getEntidades, type EntidadResumen } from '../../entidades/services/entidades';
 import { getAreas, getAreaPe, type AreaResumen, type AreaPe } from '../../areas/services/areas';
 import { getAsignacionesByAreaPe, type Asignacion, type DosisAnual, type DosisPeriodo } from '../../asignaciones/services/asignaciones';
-import { formatChileanRut } from '../../../core/utils/format';
+import { formatChileanRut, formatChileanPhone } from '../../../core/utils/format';
 import { EntidadDropdown, AreasAccordion } from '../../entidades/components/EntidadAreaSelector';
 import AreaDetalle, { PersonalMetricCards } from '../../entidades/components/AreaDetalle';
 import DosisPeriodos from '../../dosis/components/DosisPeriodos';
@@ -220,7 +220,7 @@ export default function PerfilPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,1.4fr)] gap-4 lg:gap-6 items-stretch">
         {/* Card 1: Perfil */}
         {perfil ? (
-          <div className="order-1 rounded-2xl border border-border bg-linear-to-b from-background-secondary/50 to-background-secondary p-5">
+          <div className="order-1 rounded-2xl border border-border bg-background shadow-sm p-5">
             <div className="flex items-start gap-4">
               <div className="flex items-center gap-4 min-w-0">
                 {perfil.foto_url && !fotoError ? (
@@ -257,7 +257,7 @@ export default function PerfilPage() {
                     {perfil.telefono && (
                       <span className="flex items-center gap-1.5 shrink-0">
                         <Phone size={12} />
-                        {perfil.telefono}
+                        {formatChileanPhone(perfil.telefono)}
                       </span>
                     )}
                   </div>
@@ -267,7 +267,7 @@ export default function PerfilPage() {
                       {perfil.profesion_personal.map((p) => (
                         <span
                           key={p.id}
-                          className="px-2 py-0.5 rounded-md text-xs font-medium bg-background border border-border text-foreground"
+                          className="px-2 py-0.5 rounded-md text-xs font-medium bg-background-secondary border border-border text-foreground"
                         >
                           {p.profesion.nombre}
                         </span>
@@ -302,7 +302,7 @@ export default function PerfilPage() {
             </div>
 
             {resumen && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-background/60 border border-border text-xs mt-4 flex-wrap">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-background-secondary/60 border border-border text-xs mt-4 flex-wrap">
                 <span className="text-foreground-secondary uppercase font-medium">Entidades: <strong className="text-foreground">{resumen.entidades}</strong></span>
                 <span className="text-border">|</span>
                 <span className="text-foreground-secondary uppercase font-medium">Áreas: <strong className="text-foreground">{resumen.areas}</strong></span>
@@ -310,13 +310,13 @@ export default function PerfilPage() {
             )}
           </div>
         ) : (
-          <div className="order-1 rounded-2xl border border-border bg-linear-to-b from-background-secondary/50 to-background-secondary p-5">
+          <div className="order-1 rounded-2xl border border-border bg-background shadow-sm p-5">
             <Loading text="Cargando perfil..." size="sm" />
           </div>
         )}
 
         {/* Card 2: Entidad */}
-        <div className="order-3 lg:order-2 rounded-2xl border border-border bg-background-secondary p-5 h-full">
+        <div className="order-3 lg:order-2 rounded-2xl border border-border bg-background shadow-sm p-5 h-full">
           <EntidadDropdown
             entidades={entidades}
             loading={loadingEntidades}
@@ -329,7 +329,7 @@ export default function PerfilPage() {
         </div>
 
         {/* Card 3: Área */}
-        <div className="order-4 lg:order-3 rounded-2xl border border-border bg-background-secondary p-5 h-full flex flex-col gap-3">
+        <div className="order-4 lg:order-3 rounded-2xl border border-border bg-background shadow-sm p-5 h-full flex flex-col gap-3">
           <AreasAccordion
             areas={areas}
             loading={loadingAreas}
