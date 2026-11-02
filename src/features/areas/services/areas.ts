@@ -126,6 +126,7 @@ export interface PeriodoAnios {
 export interface AniosByAreaPeResponse {
   periodos: PeriodoAnios[];
   anios_sin_periodo: number[];
+  anio_actual?: number;
 }
 
 export const getAniosByAreaPe = async (idAreaPe: number): Promise<AniosByAreaPeResponse> => {
@@ -166,9 +167,10 @@ export const getAniosByAreaPe = async (idAreaPe: number): Promise<AniosByAreaPeR
           anios: [...anios].sort((a, b) => b - a),
         }],
         anios_sin_periodo: [],
+        anio_actual: data.anio_actual,
       };
     }
   }
 
-  return { periodos, anios_sin_periodo };
+  return { periodos, anios_sin_periodo, anio_actual: data.anio_actual };
 };

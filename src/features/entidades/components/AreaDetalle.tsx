@@ -169,10 +169,13 @@ function AnioSelector({
         setAniosSinPeriodo(data.anios_sin_periodo);
         const todosAnios = [...data.periodos.flatMap((p) => p.anios), ...data.anios_sin_periodo];
         if (todosAnios.length > 0 && selectedAnio === null) {
-          const anioActual = new Date().getFullYear();
-          onSelectAnio(todosAnios.includes(anioActual) ? anioActual : Math.max(...todosAnios));
+          // Año vigente según el backend (reloj del servidor, no el del
+          // navegador) — con tiempo simulado difieren.
+          const anioActual = data.anio_actual ?? new Date().getFullYear();
+          const anioSel = todosAnios.includes(anioActual) ? anioActual : Math.max(...todosAnios);
+          onSelectAnio(anioSel);
           // Determinar el id_dosis_periodo del año seleccionado automáticamente
-          const periodoDelAnio = data.periodos.find((p) => p.anios.includes(todosAnios.includes(anioActual) ? anioActual : Math.max(...todosAnios)));
+          const periodoDelAnio = data.periodos.find((p) => p.anios.includes(anioSel));
           onSelectIdDosisPeriodo(periodoDelAnio ? periodoDelAnio.id : null);
         }
       })
@@ -513,11 +516,11 @@ function DosisComparativaCard({
         <div className="grid grid-cols-3 gap-3 border-t border-border pt-3 md:border-t-0 md:pt-0 md:flex md:items-center md:gap-4">
           <DosisBloque
             label={`Trimestre ${asignacion.trimestre?.anio ?? ''}`}
-            valor={tieneLectura ? dosisTrim : null}
+            valor={dosisTrim}
             umbral={umbralTrim}
             nivel={tieneLectura ? nivelTrim : 'normal'}
             badge="Actual"
-            sinLectura={!tieneLectura}
+            sinLectura={!tieneLectura && dosisTrim === null}
           />
           <DosisBloque
             label="Dosis anual"
